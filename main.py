@@ -16,15 +16,16 @@ def togle_page():
     if page == 1:
         show_page2()
         page = 2
-        button_text.set("Zurück")
+        
 
     else:
         show_page1()
         page = 1
-        button_text.set("Menü")
+        
 
   # Versteckt das Textfeld
 def show_page1():
+    button_text.set("Menü")
     def toggle_textfield(*args):
         if checkbox_state.get():
             textfield.grid(row=4, column=0, padx=10, pady=10)  # Zeigt das Textfeld an
@@ -64,6 +65,7 @@ def show_page1():
     Alarm = tk.Button(frame, text="Alarmieren", command=lambda: print(Erkrankung.get()), font=("Arial", 20), bg="red", fg="white")
     Alarm.grid(row=5, column=0, padx=10, pady=10)
 def show_page2():
+    button_text.set("Zurück")
     for widget in frame.winfo_children():
         widget.destroy()
     Titele = ttk.Label(frame, text="Menu", font=("Arial", 20))
@@ -72,5 +74,5 @@ def show_page2():
 button1 = ttk.Button(root, textvariable= button_text, command=togle_page)
 button1.grid(row= 0, column=0, padx= 10, pady= 10)
 
-
+show_page1()
 root.mainloop()
