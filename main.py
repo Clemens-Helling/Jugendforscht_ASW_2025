@@ -67,7 +67,7 @@ def show_page1():
 
     def get_print_erkrankung():
         from Alarm import print_erkrankung
-        print_erkrankung()
+        print_erkrankung(get_erkrankung()
     
 
 
