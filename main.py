@@ -1,14 +1,17 @@
 import tkinter as tk
 from tkinter import ttk
+from Alarm import print_erkrankung
 page =1
-# Erstellen Sie ein Frame-Widget
+
+# Tk Setup
 root = tk.Tk()
 root.title("Notifer Base")
 root.geometry("800x600")
 frame = tk.Frame(root)
 frame.place(relx=0.5, rely=0.5, anchor='center')
 button_text = tk.StringVar()
-from Alarm import print_erkrankung
+
+
 def get_erkrankung():
         return erkrankung
 
@@ -27,7 +30,7 @@ def togle_page():
         page = 1
     
 
-  # Versteckt das Textfeld
+# Versteckt das Textfeld
 def show_page1():
     button_text.set("Menü")
     def toggle_textfield(*args):
@@ -41,14 +44,14 @@ def show_page1():
     Erkrankung = ttk.Combobox(frame, text= "Symptome", values=["Bauchschmerzen", "Kopfschmerzen", "Akutes Abdomen",
     "Intox","tee","Wärmflasche","ACS","Atemnot","Fraktur", "Sportverletzung","Synkope","Panikatake" , "Anaphilaktischer Schock"])
 
-    # Rest of your code...
+ 
     Erkrankung.set("Wählen Sie eine Krankheit")  # Setzt den Standardwert
     Erkrankung.grid(row=1, column=0, padx=10, pady=10)
 
     unklare_lage_chackbox =ttk.Checkbutton(frame, text="Unklare Lage")
     unklare_lage_chackbox.grid(row=2, column=0, padx=10, pady=10)
 
-    erkrangung = Erkrankung.get()
+    
 
 
     # Erstellen Sie eine IntVar, um den Zustand der Checkbox zu verfolgen
@@ -68,11 +71,13 @@ def show_page1():
     def get_print_erkrankung():
         from Alarm import print_erkrankung
         print_erkrankung()
-    
+            
+    erkrangung = Erkrankung.get()
 
 
     Alarm = tk.Button(frame, text="Alarmieren", command = get_print_erkrankung, font=("Arial", 20), bg="red", fg="white")#
     Alarm.grid(row=5, column=0, padx=10, pady=10)
+        
 def show_page2():
     button_text.set("Zurück")
     for widget in frame.winfo_children(): 
