@@ -71,8 +71,7 @@ def show_page1():
     def get_print_erkrankung():
         from Alarm import print_erkrankung
         print_erkrankung()
-            
-    erkrangung = Erkrankung.get()
+    
 
 
     Alarm = tk.Button(frame, text="Alarmieren", command = get_print_erkrankung, font=("Arial", 20), bg="red", fg="white")#
