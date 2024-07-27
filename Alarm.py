@@ -1,4 +1,4 @@
-
-
-def print_erkrankung(erkranung):
+def alarm(erkranung):
+    if erkranung == "Wählen Sie eine Krankheit":
+        return "keine Krankheit ausgewählt"
     print(erkranung)   
