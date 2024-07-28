@@ -1,11 +1,10 @@
 import tkinter as tk
 from tkinter import ttk
 from Alarm import alarm
-from error import show_error
-from error import error_label
+
 page =1
 is_error = False
-
+error_label = None
 # Tk Setup
 root = tk.Tk()
 root.title("Notifer Base")
@@ -36,6 +35,13 @@ def togle_page():
 
 # Versteckt das Textfeld
 def show_page1():
+
+    def show_error(message):
+        global error_label
+        if error_label is None:
+            error_label = tk.Label(frame, text=message, font=("Arial", 20), fg="red")
+            error_label.grid(row=6, column=0, padx=10, pady=10)
+
     button_text.set("Menü")
     def toggle_textfield(*args):
         if checkbox_state.get():
