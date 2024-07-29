@@ -48,7 +48,7 @@ def show_page1():
     button_text.set("Menü")
     def toggle_textfield(*args):
         if sonstiges_checkbox_state.get():
-            textfield.grid(row=4, column=0, padx=10, pady=10)  # Zeigt das Textfeld an
+            textfield.grid(row=5, column=0, padx=10, pady=10)  # Zeigt das Textfeld an
         else:
             textfield.grid_remove()
     
@@ -57,20 +57,20 @@ def show_page1():
         
 
     Titele = ttk.Label(frame, text="Notifer Base", font=("Arial", 20))
-    Titele.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
+    Titele.grid(row=1, column=0, columnspan=2, padx=10, pady=10)
 
     Erkrankung = ttk.Combobox(frame, text= "Symptome", values=["Bauchschmerzen", "Kopfschmerzen", "Akutes Abdomen",
     "Intox","tee","Wärmflasche","ACS","Atemnot","Fraktur", "Sportverletzung","Synkope","Panikatake" , "Anaphilaktischer Schock"])
 
  
     Erkrankung.set("Wählen Sie eine Krankheit")  # Setzt den Standardwert
-    Erkrankung.grid(row=1, column=0, padx=10, pady=10)
+    Erkrankung.grid(row=2, column=0, padx=10, pady=10)
     
     global unklare_lage_checkbox_state
     unklare_lage_checkbox_state = tk.IntVar()
 
     unklare_lage_checkbox =ttk.Checkbutton(frame, text="Unklare Lage", variable=unklare_lage_checkbox_state)
-    unklare_lage_checkbox.grid(row=2, column=0, padx=10, pady=10)
+    unklare_lage_checkbox.grid(row=3, column=0, padx=10, pady=10)
 
     
 
@@ -81,7 +81,7 @@ def show_page1():
 
     # Erstellen Sie die Checkbox
     checkbox = ttk.Checkbutton(frame, text="Sonstige", variable=sonstiges_checkbox_state)
-    checkbox.grid(row=3, column=0, padx=10, pady=10)
+    checkbox.grid(row=4, column=0, padx=10, pady=10)
 
     # Erstellen Sie das Textfeld, aber zeigen Sie es zunächst nicht an
     textfield = ttk.Entry(frame, text = "Einsatzstichwort")
@@ -97,10 +97,10 @@ def show_page1():
         else:
             return Erkrankung.get()
     def get_alarm():
-        from Alarm import alarm
+       
         alarm(get_erkrankung())
-        print(get_erkrankung())
-        if alarm(Erkrankung.get()) == "keine Krankheit ausgewählt":
+        print(alarm(get_erkrankung()))
+        if alarm(Erkrankung.get()) == False:
             
             show_error("Bitte wählen Sie eine Krankheit")
         else:

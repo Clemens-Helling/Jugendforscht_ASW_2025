@@ -1,6 +1,6 @@
 import mysql.connector
 from mysql.connector import Error
-
+import time
 db = mysql.connector.connect(
     host="localhost",
     user="Clemens",
@@ -12,5 +12,12 @@ cursor = db.cursor()
 print(cursor.execute("SELECT * FROM alamierungen"))
 results = cursor.fetchall()
 
+def insert_alarm(Symptom):
+    try:
+        cursor.execute("INSERT INTO alamierungen (Symptome, Datum_Uhrzeit) VALUES (%s,%s);", (Symptom,time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())))
+        db.commit()
+    except Error as e:
+        print(e)
 for row in results:
     print(row)
+    
