@@ -1,7 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
 from Alarm import alarm
-
+import json
+import time
 page =1
 is_error = False
 error_label = None
@@ -35,16 +36,18 @@ def togle_page():
 
 # Versteckt das Textfeld
 def show_page1():
-
+    global error_label
+    error_label = tk.Label(frame, text="Error:", font=("Arial", 20), fg="red")
+    error_label.grid(row=0, column=0, padx=10, pady=10)
+    error_label.grid_remove()
     def show_error(message):
-        global error_label
-        if error_label is None:
-            error_label = tk.Label(frame, text="Error:" + message, font=("Arial", 20), fg="red")
-            error_label.grid(row=0, column=0, padx=10, pady=10)
+        error_label.config(text="Error: " + message)
+        error_label.grid()
+           
 
     button_text.set("Menü")
     def toggle_textfield(*args):
-        if checkbox_state.get():
+        if sonstiges_checkbox_state.get():
             textfield.grid(row=4, column=0, padx=10, pady=10)  # Zeigt das Textfeld an
         else:
             textfield.grid_remove()
@@ -62,18 +65,22 @@ def show_page1():
  
     Erkrankung.set("Wählen Sie eine Krankheit")  # Setzt den Standardwert
     Erkrankung.grid(row=1, column=0, padx=10, pady=10)
+    
+    global unklare_lage_checkbox_state
+    unklare_lage_checkbox_state = tk.IntVar()
 
-    unklare_lage_chackbox =ttk.Checkbutton(frame, text="Unklare Lage")
-    unklare_lage_chackbox.grid(row=2, column=0, padx=10, pady=10)
+    unklare_lage_checkbox =ttk.Checkbutton(frame, text="Unklare Lage", variable=unklare_lage_checkbox_state)
+    unklare_lage_checkbox.grid(row=2, column=0, padx=10, pady=10)
 
     
 
 
     # Erstellen Sie eine IntVar, um den Zustand der Checkbox zu verfolgen
-    checkbox_state = tk.IntVar()
+    global sonstiges_checkbox_state
+    sonstiges_checkbox_state = tk.IntVar()
 
     # Erstellen Sie die Checkbox
-    checkbox = ttk.Checkbutton(frame, text="Sonstige", variable=checkbox_state)
+    checkbox = ttk.Checkbutton(frame, text="Sonstige", variable=sonstiges_checkbox_state)
     checkbox.grid(row=3, column=0, padx=10, pady=10)
 
     # Erstellen Sie das Textfeld, aber zeigen Sie es zunächst nicht an
@@ -81,16 +88,24 @@ def show_page1():
     # textfield.grid(row=5, column=0, padx=10, pady=10)  # Kommentiert aus, um das Textfeld zunächst zu verstecken
 
     # Rufen Sie die Funktion toggle_textfield auf, wenn sich der Zustand der Checkbox ändert
-    checkbox_state.trace('w', toggle_textfield)
-
+    sonstiges_checkbox_state.trace('w', toggle_textfield)
+    def get_erkrankung():
+        if sonstiges_checkbox_state.get() == 1:
+            return f"Sonstiges: {textfield.get()}"   
+        if unklare_lage_checkbox_state.get() == 1:
+            return "Unklare Lage"
+        else:
+            return Erkrankung.get()
     def get_alarm():
         from Alarm import alarm
-        alarm(Erkrankung.get())
+        alarm(get_erkrankung())
+        print(get_erkrankung())
         if alarm(Erkrankung.get()) == "keine Krankheit ausgewählt":
             
             show_error("Bitte wählen Sie eine Krankheit")
         else:
-            error_label.grid_remove()
+            if error_label.winfo_ismapped():
+                error_label.grid_remove()
         
 
             
