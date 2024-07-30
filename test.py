@@ -1,11 +1,4 @@
-import json
-name = "Claudia"
-data = {
-    "name": name,
-    "age": 30,
-    "city": "New York",
-    "einkaeufe": ["Brokoli", "Milch"]
+from database import insert_alarm
 
-}
-json_data = json.dumps(data, indent=4)
-print(json_data)
+insert_alarm("Fieber")
+         
