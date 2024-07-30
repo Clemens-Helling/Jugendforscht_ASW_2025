@@ -3,6 +3,7 @@ from tkinter import ttk
 from Alarm import alarm
 import json
 import time
+from database import insert_alarm
 page =1
 is_error = False
 error_label = None
@@ -99,6 +100,7 @@ def show_page1():
     def get_alarm():
        
         alarm(get_erkrankung())
+        insert_alarm(get_erkrankung())
         print(alarm(get_erkrankung()))
         if alarm(Erkrankung.get()) == False:
             

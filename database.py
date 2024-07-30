@@ -9,8 +9,7 @@ db = mysql.connector.connect(
 )
 cursor = db.cursor()
 
-print(cursor.execute("SELECT * FROM alamierungen"))
-results = cursor.fetchall()
+
 
 def insert_alarm(Symptom):
     try:
@@ -18,6 +17,5 @@ def insert_alarm(Symptom):
         db.commit()
     except Error as e:
         print(e)
-for row in results:
-    print(row)
+
     

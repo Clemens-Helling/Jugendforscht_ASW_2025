@@ -2,6 +2,7 @@ import json
 import time
 import json
 import time
+from database import insert_alarm
 def alarm(erkranung):
     if erkranung == "Wählen Sie eine Krankheit" or erkranung.startswith("Unklare ") or erkranung.startswith("Sonstiges"):
         return False
@@ -14,9 +15,16 @@ def alarm(erkranung):
 
     # Convert the dictionary to JSON format
     json_data = json.dumps(data)
+    # Convert the JSON data back to a dictionary
+    data_dict = json.loads(json_data)
 
-    # Do something with the JSON data
-    # ...
+    # Access the values using the keys
+    erkranung_value = data_dict["erkranung"]
+    timestamp_value = data_dict["timestamp"]
+
+    
+    print(f"Alarm: {erkranung_value} at {timestamp_value}")    
+   
 
     return json_data
 
