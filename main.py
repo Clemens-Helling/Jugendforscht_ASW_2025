@@ -12,7 +12,7 @@ root.geometry("800x600")
 frame = tk.Frame(root)
 frame.place(relx=0.5, rely=0.5, anchor='center')
 button_text = tk.StringVar()
-
+global erkankung
 
 
 def get_erkrankung():
@@ -43,7 +43,7 @@ def show_page1():
 
     button_text.set("Menü")
     def toggle_textfield(*args):
-        if checkbox_state.get():
+        if sonstiges_state.get():
             textfield.grid(row=3, column=0, padx=10, pady=10)  # Zeigt das Textfeld an
         else:
             textfield.grid_remove()
@@ -62,17 +62,19 @@ def show_page1():
     Erkrankung.set("Wählen Sie eine Krankheit")  # Setzt den Standardwert
     Erkrankung.grid(row=2, column=0, padx=10, pady=10)
 
-    unklare_lage_chackbox =ttk.Checkbutton(frame, text="Unklare Lage")
+    unklare_lage_chackbox_state = tk.IntVar()
+
+    unklare_lage_chackbox =ttk.Checkbutton(frame, text="Unklare Lage", variable=unklare_lage_chackbox_state)
     unklare_lage_chackbox.grid(row=3, column=0, padx=10, pady=10)
 
     
 
 
     # Erstellen Sie eine IntVar, um den Zustand der Checkbox zu verfolgen
-    checkbox_state = tk.IntVar()
+    sonstiges_state = tk.IntVar()
 
     # Erstellen Sie die Checkbox
-    checkbox = ttk.Checkbutton(frame, text="Sonstige", variable=checkbox_state)
+    checkbox = ttk.Checkbutton(frame, text="Sonstige", variable=sonstiges_state)
     checkbox.grid(row=4, column=0, padx=10, pady=10)
 
     # Erstellen Sie das Textfeld, aber zeigen Sie es zunächst nicht an
@@ -80,12 +82,18 @@ def show_page1():
     # textfield.grid(row=5, column=0, padx=10, pady=10)  # Kommentiert aus, um das Textfeld zunächst zu verstecken
 
     # Rufen Sie die Funktion toggle_textfield auf, wenn sich der Zustand der Checkbox ändert
-    checkbox_state.trace('w', toggle_textfield)
+    sonstiges_state.trace('w', toggle_textfield)
 
     def get_alarm():
-        from allert.Alarm import alarm
-        alarm(Erkrankung.get())
-        if alarm(Erkrankung.get()) == "keine Krankheit ausgewählt":
+        erkankung = Erkrankung.get()
+        if unklare_lage_chackbox_state.get():
+            erkankung = "Unklare Lage"
+            print(erkankung)
+        if sonstiges_state.get():
+            erkankung = textfield.get()
+    
+        alarm(erkankung)
+        if alarm(erkankung) == "keine Krankheit ausgewählt":
             
             show_error("Bitte wählen Sie eine Krankheit")
         else:
