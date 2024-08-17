@@ -88,7 +88,7 @@ def show_page1():
         erkankung = Erkrankung.get()
         if unklare_lage_chackbox_state.get():
             erkankung = "Unklare Lage"
-            print(erkankung)
+            
         if sonstiges_state.get():
             erkankung = textfield.get()
     
