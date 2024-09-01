@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-from allert.Alarm import alarm
+from allert.Alarm import alarm , error
 
 page =1
 is_error = False
@@ -89,11 +89,12 @@ def show_page1():
         if unklare_lage_chackbox_state.get():
             erkankung = "Unklare Lage"
             
-        if sonstiges_state.get():
+        elif sonstiges_state.get():
             erkankung = textfield.get()
-    
+        
         alarm(erkankung)
-        if alarm(erkankung) == "keine Krankheit ausgewählt":
+
+        if error == "keine Krankheit ausgewählt":
             
             show_error("Bitte wählen Sie eine Krankheit")
         else:
