@@ -1,11 +1,6 @@
-import json
-name = "Claudia"
-data = {
-    "name": name,
-    "age": 30,
-    "city": "New York",
-    "einkaeufe": ["Brokoli", "Milch"]
-
-}
-json_data = json.dumps(data, indent=4)
-print(json_data)
+from Alarm import alarm
+erkranung = "test"
+if alarm(erkranung) == "keine Krankheit ausgewählt":
+    print("Test erfolgreich")
+else:
+    print("Test fehlgeschlagen")

@@ -1,0 +1,1 @@
+UPDATE alamierungen SET `Einsatzart` = 'Erkrankung' WHERE `id` = '12'
