@@ -1,11 +1,10 @@
 import database
 error =""
-def alarm(erkranung):
-    if erkranung == "Wählen Sie eine Krankheit":
+def alarm(symtom, name, last_name):
+    if symtom == "Wählen Sie eine Krankheit":
         print("keine Krankheit ausgewählt")	
         return("keine Krankheit ausgewählt")
     else: 
         print("Alarm wurde ausgelöst")
-        database.insert_alarm(erkranung)
-
+        database.add_alarm(name, last_name, symtom)
        
