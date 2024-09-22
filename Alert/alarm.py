@@ -1,4 +1,4 @@
-import database
+import Data.database as database
 error =""
 def alarm(symtom, name, last_name):
     if symtom == "Wählen Sie eine Krankheit":

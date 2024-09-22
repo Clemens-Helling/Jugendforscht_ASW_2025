@@ -1,14 +1,14 @@
 import uuid
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from models import Base, Alarmierungen, Pseudonymization
+from Data.models import Base, Alarmierungen, Pseudonymization
 import datetime
 engine = create_engine('mysql+pymysql://root:Flecki2022#@localhost:3306/notifyer')
 
 Session = sessionmaker(bind=engine)
 session = Session()
 Base.metadata.create_all(engine)
-
+ 
 def add_alarm(name, lastname,  symptom):
     unique_id = str(uuid.uuid4())
 
@@ -25,8 +25,13 @@ def add_alarm(name, lastname,  symptom):
 def is_name_in_pseudonymization(name):
     # Überprüfen, ob der Name in der Pseudonymization-Tabelle vorhanden ist
     result = session.query(Pseudonymization).filter_by(real_name=name).first()
-    return result is not None
+    print(result)
+    if result is not None:
+        return True
+    
+
 def is_uuid_in_pseudonymization(unique_id):
-    # Überprüfen, ob die UUID in der Alarmierungen-Tabelle vorhanden ist
+    # Überprüfen, ob die UUID in der Pseudonymization-Tabelle vorhanden ist
     result = session.query(Pseudonymization).filter_by(pseudonym=unique_id).first()
-    return result is not None
+    if result is not None:
+        return True

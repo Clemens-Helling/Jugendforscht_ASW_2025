@@ -18,6 +18,10 @@ class AlarmApp:
         self.show_page1()
         
     def show_page1(self):
+        for widget in self.frame.winfo_children(): 
+            widget.destroy()
+        
+
         self.button_text = tk.StringVar()
         self.button_text.set("Menu")
         self.button1 = ttk.Button(root, textvariable= self.button_text, command=self.togle_page)
@@ -40,7 +44,7 @@ class AlarmApp:
 
 
         self.symptoms = ttk.Combobox(self.frame, text= "Symptome", values=["Bauchschmerzen", "Kopfschmerzen", "Akutes Abdomen",
-        "Intox","tee","Wärmflasche","ACS","Atemnot","Fraktur", "Sportverletzung","Synkope","Panikatake" , "Anaphilaktischer Schock"])
+        "Intox","Tee","Wärmflasche","ACS","Atemnot","Fraktur", "Sportverletzung","Synkope","Panikatake" , "Anaphilaktischer Schock"])
 
  
         self.symptoms.set("Wählen Sie eine Krankheit")  # Setzt den Standardwert
@@ -51,7 +55,7 @@ class AlarmApp:
 
         # Erstellen der Checkbox für "Sonstige"
         self.checkbox = ttk.Checkbutton(self.frame, text="Sonstige", variable=self.other_state)
-        self.checkbox.grid(row=5, column=1, padx=10, pady=10)
+        self.checkbox.grid(row=6, column=0, padx=10, pady=10)
 
         # Erstellen des Textfelds, aber zunächst nicht anzeigen
         self.other_textfield = ttk.Entry(self.frame)
@@ -67,13 +71,15 @@ class AlarmApp:
 
         # Erstellen des Buttons zum Auslösen des Alarms
         self.button = tk.Button(self.frame, text="Alarmieren", command = self.get_alarm, font=("Arial", 20), bg="red", fg="white")
-        self.button.grid(row=7, column=0, padx=10, pady=10)
+        self.button.grid(row=8, column=0, padx=10, pady=10)
 
     def toggle_textfield(self, *args):
         if self.other_state.get():
-            self.other_textfield.grid(row=6, column=0, padx=10, pady=10)  # Zeigt das Textfeld an
+            self.other_textfield.grid(row=7, column=0, padx=10, pady=10)  # Zeigt das Textfeld an
         else:
             self.other_textfield.grid_remove()  # Versteckt das Textfeld
+    def get_event(self, event):
+        return event
 
     def get_alarm(self):
         print("Alarmieren")  # Debugging-Ausgabe
@@ -102,7 +108,9 @@ class AlarmApp:
             event.widget.config(foreground='black')
 
     def add_placeholder(self, event, placeholder):
-        if event.widget.get() == "":
+        current_text = event.widget.get()
+        if current_text == "" or current_text == placeholder:
+            event.widget.delete(0, tk.END)
             event.widget.insert(0, placeholder)
             event.widget.config(foreground='grey')
 
@@ -120,10 +128,12 @@ class AlarmApp:
         if self.page == 1:
             self.show_page2()
             self.page = 2
+
         
         else:
             self.show_page1()
             self.page = 1
+            
 if __name__ == "__main__":
     root = tk.Tk()
     app = AlarmApp(root)
