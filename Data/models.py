@@ -27,3 +27,8 @@ class Pseudonymization(Base):
     real_name = Column(String(50))
     real_last_name = Column(String(50))
     created_at = Column(DateTime, default=datetime.datetime.now)
+    def __repr__(self):
+        return f"<Pseudonymization(real_name='{self.real_name}', real_last_name='{self.real_last_name}', pseudonym='{self.pseudonym}')>"
+
+    def __str__(self):
+        return f"Pseudonymization(real_name='{self.real_name}', real_last_name='{self.real_last_name}', pseudonym='{self.pseudonym}')"
