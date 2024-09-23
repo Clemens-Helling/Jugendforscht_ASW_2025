@@ -27,9 +27,9 @@ class AlarmApp:
         self.button1 = ttk.Button(root, textvariable= self.button_text, command=self.togle_page)
         self.button1.grid(row= 0, column=0, padx= 10, pady= 10)
 
-        self.Titele = ttk.Label(self.frame, text="Notifer Base", font=("Arial", 20))
+        self.Titele = ttk.Label(self.frame, text="Notifyer Base", font=("Arial", 20))
         self.Titele.grid(row=1, column=0, columnspan=2, padx=10, pady=10)
-
+        
         self.first_name = ttk.Entry(self.frame, text= "Vorname")
         self.first_name.insert(0, "Vorname")
         self.first_name.bind("<FocusIn>", lambda event: self.clear_placeholder(event, "Vorname"))
