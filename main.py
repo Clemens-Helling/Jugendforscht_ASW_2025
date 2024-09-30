@@ -12,7 +12,7 @@ class AlarmApp:
         self.unclear_situation_checkbox_state = tk.IntVar()
         self.other_state = tk.IntVar()
         self.frame.place(relx=0.5, rely=0.5, anchor='center')
-        self.page = 1
+
         self.button_text ="Menu"
         self.button_text = tk.StringVar()
         self.show_page1()
@@ -24,7 +24,7 @@ class AlarmApp:
 
         self.button_text = tk.StringVar()
         self.button_text.set("Menu")
-        self.button1 = ttk.Button(root, textvariable= self.button_text, command=self.togle_page)
+        self.button1 = ttk.Button(root, textvariable= self.button_text, command=self.togle_page(2))
         self.button1.grid(row= 0, column=0, padx= 10, pady= 10)
 
         self.Titele = ttk.Label(self.frame, text="Notifyer Base", font=("Arial", 20))
@@ -124,21 +124,27 @@ class AlarmApp:
             widget.destroy()
         Titele = ttk.Label(self.frame, text="Menu", font=("Arial", 20))
         Titele.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
-    def togle_page(self):
-        if self.page == 1:
-            self.show_page2()
-            self.page = 2
 
-        
-        else:
+    def show_alert_search(self):
+        self.button_text.set("Menu")
+        for widget in self.frame.winfo_children():
+            widget.destroy()
+        Titele = ttk.Label(self.frame, text="Alarm Suche", font=("Arial", 20))
+        Titele.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
+    def togle_page(self, page):
+        if page == 1:
             self.show_page1()
-            self.page = 1
-            
+        elif page == 2:
+            self.show_page2()
+
+        else:
+            self.show_alert_search()
+
 if __name__ == "__main__":
     root = tk.Tk()
     app = AlarmApp(root)
     root.title("Notifer Base")
     root.geometry("800x600")
-    
+    AlarmApp.togle_page(app,1)
     button_text = tk.StringVar()
     root.mainloop()
