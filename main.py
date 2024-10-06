@@ -1,107 +1,103 @@
 import tkinter as tk
 from tkinter import ttk
 from Alert.alarm import alarm
-
-
-class AlarmApp:
-    def __init__(self, root):
-        self.root = root
-        self.frame = tk.Frame(root)
-        self.frame.pack()
-
-        self.unclear_situation_checkbox_state = tk.IntVar()
-        self.other_state = tk.IntVar()
-        self.frame.place(relx=0.5, rely=0.5, anchor='center')
-
-        self.button_text ="Menu"
-        self.button_text = tk.StringVar()
-        self.show_page1()
+from tkinter import messagebox
+class MultiPageApp(tk.Tk):
+    def __init__(self):
+        super().__init__()
         
-    def show_page1(self):
-        for widget in self.frame.winfo_children(): 
-            widget.destroy()
+        self.title("Mehrseitige Tkinter Anwendung")
+        self.geometry("800x600")
         
-
-        self.button_text = tk.StringVar()
-        self.button_text.set("Menu")
-        self.button1 = ttk.Button(root, textvariable= self.button_text, command=self.togle_page(2))
-        self.button1.grid(row= 0, column=0, padx= 10, pady= 10)
-
-        self.Titele = ttk.Label(self.frame, text="Notifyer Base", font=("Arial", 20))
-        self.Titele.grid(row=1, column=0, columnspan=2, padx=10, pady=10)
+        # Container für die Seiten (Frames)
+        container = tk.Frame(self)
+        container.pack(side="top", fill="both", expand=True)
         
-        self.first_name = ttk.Entry(self.frame, text= "Vorname")
-        self.first_name.insert(0, "Vorname")
-        self.first_name.bind("<FocusIn>", lambda event: self.clear_placeholder(event, "Vorname"))
-        self.first_name.bind("<FocusOut>", lambda event: self.add_placeholder(event, "Vorname"))
-        self.first_name.grid(row=2, column=0, padx=10, pady=10)
-
-        self.last_name = ttk.Entry(self.frame, text= "Nachname")
-        self.last_name.insert(0, "Nachname")
-        self.last_name.bind("<FocusIn>", lambda event: self.clear_placeholder(event, "Nachname"))
-        self.last_name.bind("<FocusOut>", lambda event: self.add_placeholder(event, "Nachname"))
-        self.last_name.grid(row=3, column=0, padx=10, pady=10)
-
-
-        self.symptoms = ttk.Combobox(self.frame, text= "Symptome", values=["Bauchschmerzen", "Kopfschmerzen", "Akutes Abdomen",
-        "Intox","Tee","Wärmflasche","ACS","Atemnot","Fraktur", "Sportverletzung","Synkope","Panikatake" , "Anaphilaktischer Schock"])
-
- 
-        self.symptoms.set("Wählen Sie eine Krankheit")  # Setzt den Standardwert
-        self.symptoms.grid(row=4, column=0, padx=10, pady=10)
-        # Erstellen der Checkbox für "Unklare Lage"
-        self.unclear_situation_checkbox = ttk.Checkbutton(self.frame, text="Unklare Lage", variable=self.unclear_situation_checkbox_state)
-        self.unclear_situation_checkbox.grid(row=5, column=0, padx=10, pady=10)
-
-        # Erstellen der Checkbox für "Sonstige"
-        self.checkbox = ttk.Checkbutton(self.frame, text="Sonstige", variable=self.other_state)
-        self.checkbox.grid(row=6, column=0, padx=10, pady=10)
-
-        # Erstellen des Textfelds, aber zunächst nicht anzeigen
-        self.other_textfield = ttk.Entry(self.frame)
-        # self.textfield.grid(row=3, column=0, padx=10, pady=10)  # Kommentiert aus, um das Textfeld zunächst zu verstecken
-
-        # Rufen Sie die Funktion toggle_textfield auf, wenn sich der Zustand der Checkbox ändert
-        self.other_state.trace('w', self.toggle_textfield)
-
-        # Erstellen des Labels für Fehlermeldungen
-        self.error_label = tk.Label(self.frame, text="Error:", font=("Arial", 20), fg="red")
-        self.error_label.grid(row=0, column=0, padx=10, pady=10)
-        self.error_label.grid_remove()
-
-        # Erstellen des Buttons zum Auslösen des Alarms
-        self.button = tk.Button(self.frame, text="Alarmieren", command = self.get_alarm, font=("Arial", 20), bg="red", fg="white")
-        self.button.grid(row=8, column=0, padx=10, pady=10)
-
-    def toggle_textfield(self, *args):
-        if self.other_state.get():
-            self.other_textfield.grid(row=7, column=0, padx=10, pady=10)  # Zeigt das Textfeld an
-        else:
-            self.other_textfield.grid_remove()  # Versteckt das Textfeld
-    def get_event(self, event):
-        return event
-
-    def get_alarm(self):
-        print("Alarmieren")  # Debugging-Ausgabe
-        erkankung = self.symptoms.get()
-        name = self.first_name.get()
-        last_name = self.last_name.get()
-        if self.unclear_situation_checkbox_state.get():
-            erkankung = "Unklare Lage"
+        # Stelle sicher, dass der Container den gesamten Platz ausfüllt
+        container.grid_rowconfigure(0, weight=1)
+        container.grid_columnconfigure(0, weight=1)
+        
+        # Frames speichern
+        self.frames = {}
+        
+        for F in (StartPage, MenuPage, PageTwo):
+            page_name = F.__name__
+            frame = F(parent=container, controller=self)
+            self.frames[page_name] = frame
             
-        elif self.other_state.get():
-            erkankung = self.other_textfield.get()
+            # Alle Frames im selben Container stapeln und den Platz ausfüllen
+            frame.grid(row=0, column=0, sticky="nsew")
         
-        result = alarm(erkankung, name, last_name )
+        # Starte mit der Startseite
+        self.show_frame("StartPage")
     
-        if result == "keine Krankheit ausgewählt":
-                print("Fehler: Keine Krankheit ausgewählt")  # Debugging-Ausgabe
-                self.show_error("Bitte wählen Sie eine Krankheit")
+    def show_frame(self, page_name):
+        '''Zeigt den Frame für die gegebene Seite'''
+        frame = self.frames[page_name]
+        frame.tkraise()
+
+# Erste Seite
+class StartPage(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        self.unclear_situation_checkbox_state = tk.IntVar()
+        self.other_checkbox_state = tk.IntVar()
+        def resize(self,event):
+    # Wenn das Fenster skaliert wird, aktualisiere die Position und Größe der Widgets
+            self.label.place(relx=0.5, rely=0.5, anchor='center', relwidth=0.8, relheight=0.2)
+            self.button1.place(relx=0.5, rely=0.8, anchor='center', relwidth=0.5, relheight=0.1)
+
+
+        # Stelle sicher, dass der Frame den gesamten Platz ausfüllt
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        
+        # Erstelle ein zentriertes Frame für Inhalte
+        content_frame = tk.Frame(self)
+        content_frame.grid(row=0, column=0, sticky="nsew")  # Inhalt ausfüllen
+        
+        label = tk.Label(content_frame, text="Notifyer", font=("Arial", 24))
+        label.place(relx = 0.5, rely= 0.1, anchor="center")  # Abstand nach oben
+        
+        menu_button = tk.Button(content_frame, text="Menu",command=lambda: controller.show_frame("MenuPage"))
+        menu_button.place(relx = 0.05, rely= 0.05, anchor= "center")  # Abstand nach oben
+        
+        self.first_name_insert = ttk.Entry(content_frame, text= "Vorname")
+        self.first_name_insert.insert(0, "Vorname")
+        self.first_name_insert.place(relx = 0.5, rely= 0.3, anchor= "center")  # Abstand nach oben
+        self.first_name_insert.bind("<FocusIn>", lambda event: self.clear_placeholder(event, "Vorname"))
+        self.first_name_insert.bind("<FocusOut>", lambda event: self.add_placeholder(event, "Vorname"))
+        self.first_name_insert.place(relx = 0.5, rely= 0.3, anchor= "center")
+        
+        self.last_name_insert = ttk.Entry(content_frame, text= "Nachname")
+        self.last_name_insert.insert(0, "Nachname")
+        self.last_name_insert.place(relx = 0.5, rely= 0.3, anchor= "center")  # Abstand nach oben
+        self.last_name_insert.bind("<FocusIn>", lambda event: self.clear_placeholder(event, "Nachname"))
+        self.last_name_insert.bind("<FocusOut>", lambda event: self.add_placeholder(event, "Nachname"))
+        self.last_name_insert.place(relx = 0.5, rely= 0.35, anchor= "center")
+
+        self.symptoms = ttk.Combobox(content_frame, text= "Symptome", values=["Bauchschmerzen", "Kopfschmerzen", "Akutes Abdomen",
+        "Intox","Tee","Wärmflasche","ACS","Atemnot","Fraktur", "Sportverletzung","Synkope","Panikatake" , "Anaphilaktischer Schock"])
+        self.symptoms.set("Wählen Sie eine Krankheit")
+        self.symptoms.place(relx = 0.5, rely= 0.4, anchor= "center")
+
+        unclear_situation_checkbox = ttk.Checkbutton(content_frame, text="Unklare Lage", variable=self.unclear_situation_checkbox_state)
+        unclear_situation_checkbox.place(relx = 0.5, rely= 0.45, anchor= "center")
+        
+        self.other_checkbox_state = tk.BooleanVar()
+        other_checkbox = ttk.Checkbutton(content_frame, text="Sonstige", variable=self.other_checkbox_state, command=self.toggle_textfield)
+        other_checkbox.place(relx=0.5, rely=0.5, anchor="center")
+        
+        self.other_entry = ttk.Entry(content_frame)
+        
+        alert_button = tk.Button(content_frame, text="Alarmieren", command = self.get_alarm, font=("Arial", 20), bg="red", fg="white")
+        alert_button.place(relx = 0.5, rely= 0.6, anchor= "center")
+    def toggle_textfield(self):
+        if self.other_checkbox_state.get():
+            self.other_entry.place(relx=0.5, rely=0.55, anchor="center")  # Zeigt das Textfeld an
         else:
-            self.error_label.grid_remove()
-
-    
-
+            self.other_entry.place_forget()  # Versteckt das Textfeld
     def clear_placeholder(self, event, placeholder):
         if event.widget.get() == placeholder:
             event.widget.delete(0, tk.END)
@@ -115,36 +111,73 @@ class AlarmApp:
             event.widget.config(foreground='grey')
 
     def show_error(self, message):
-        self.error_label.config(text="Error: " + message)
-        print("Error: "+ message)
-        self.error_label.grid(row=0, column=0, padx=10, pady=10)
-    def show_page2(self):
-        self.button_text.set("Zurück")
-        for widget in self.frame.winfo_children(): 
-            widget.destroy()
-        Titele = ttk.Label(self.frame, text="Menu", font=("Arial", 20))
-        Titele.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
+        messagebox.showerror("Fehler", message)
+          # Abstand nach oben
+    def get_alarm(self):
+        print("Alarmieren")  # Debugging-Ausgabe
+        erkankung = self.symptoms.get()
+        name = self.first_name_insert.get()
+        last_name = self.last_name_insert.get()
+        if self.unclear_situation_checkbox_state.get():
+            erkankung = "Unklare Lage"
+            
+        elif self.other_checkbox_state.get():
+            erkankung = self.other_entry.get()
+        
+        result = alarm(erkankung, name, last_name )
+    
+        if result == "keine Krankheit ausgewählt":
+                print("Fehler: Keine Krankheit ausgewählt")  # Debugging-Ausgabe
+                self.show_error("Bitte wählen Sie eine Krankheit")
+       
+# Zweite Seite
+class MenuPage(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        
+        content_frame = tk.Frame(self)
+        content_frame.grid(row=0, column=0, sticky="nsew")
+        
+        label = tk.Label(content_frame, text="Menu",font=("Arial", 24))
+        label.place(relx = 0.5, rely= 0.1, anchor="center") 
+        
+        button = tk.Button(content_frame, text="Zurück zur Startseite", 
+                           command=lambda: controller.show_frame("StartPage"))
+        button.place(relx = 0.5, rely= 0.2, anchor="center")
 
-    def show_alert_search(self):
-        self.button_text.set("Menu")
-        for widget in self.frame.winfo_children():
-            widget.destroy()
-        Titele = ttk.Label(self.frame, text="Alarm Suche", font=("Arial", 20))
-        Titele.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
-    def togle_page(self, page):
-        if page == 1:
-            self.show_page1()
-        elif page == 2:
-            self.show_page2()
+        button2 = tk.Button(content_frame, text="Seite 2 anzeigen", 
+                           command=lambda: controller.show_frame("PageTwo"))
+        button2.place(relx = 0.5, rely= 0.3, anchor="center")
 
-        else:
-            self.show_alert_search()
+# Dritte Seite
+class PageTwo(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        
+        content_frame = tk.Frame(self)
+        content_frame.grid(row=0, column=0, sticky="nsew")
+        
+        label = tk.Label(content_frame, text="Das ist Seite 2", font=("Arial", 24))
+        label.place(relx = 0.5, rely= 0.1, anchor="center")
+        
+        button = tk.Button(content_frame, text="Menu",
+                           command=lambda: controller.show_frame("MenuPage"))
+        button.place(relx = 0.05, rely= 0.1, anchor="center")
+
+        first_name_entry = ttk.Entry(content_frame)
+        first_name_entry.place(relx = 0.5, rely= 0.3, anchor="center")
+
+        last_name_entry = ttk.Entry(content_frame)
+        last_name_entry.place(relx = 0.5, rely= 0.4, anchor="center")
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = AlarmApp(root)
-    root.title("Notifer Base")
-    root.geometry("800x600")
-    AlarmApp.togle_page(app,1)
-    button_text = tk.StringVar()
-    root.mainloop()
+    app = MultiPageApp()
+    app.mainloop()
