@@ -6,9 +6,9 @@ class MultiPageApp(tk.Tk):
     def __init__(self):
         super().__init__()
         
-        self.title("Mehrseitige Tkinter Anwendung")
+        self.title("Notifyer Base")
         self.geometry("800x600")
-        
+        self.iconbitmap("sirene.ico")
         # Container für die Seiten (Frames)
         container = tk.Frame(self)
         container.pack(side="top", fill="both", expand=True)
