@@ -2,7 +2,8 @@ import tkinter as tk
 from tkinter import ttk
 from Alert.alarm import alarm
 from tkinter import messagebox
-class MultiPageApp(tk.Tk):
+from Data.database import search_alerts
+class AlarmApp(tk.Tk):
     def __init__(self):
         super().__init__()
         
@@ -92,7 +93,8 @@ class StartPage(tk.Frame):
         self.other_entry = ttk.Entry(content_frame)
         
         alert_button = tk.Button(content_frame, text="Alarmieren", command = self.get_alarm, font=("Arial", 20), bg="red", fg="white")
-        alert_button.place(relx = 0.5, rely= 0.8, anchor= "center")
+        alert_button.place(relx = 0.5, rely= 0.65, anchor= "center")
+
     def toggle_textfield(self):
         if self.other_checkbox_state.get():
             self.other_entry.place(relx=0.5, rely=0.55, anchor="center")  # Zeigt das Textfeld an
@@ -150,7 +152,7 @@ class MenuPage(tk.Frame):
                            command=lambda: controller.show_frame("StartPage"))
         button.place(relx = 0.5, rely= 0.2, anchor="center")
 
-        button2 = tk.Button(content_frame, text="Seite 2 anzeigen", 
+        button2 = tk.Button(content_frame, text="Alarmsuche", 
                            command=lambda: controller.show_frame("PageTwo"))
         button2.place(relx = 0.5, rely= 0.3, anchor="center")
 
@@ -166,19 +168,51 @@ class PageTwo(tk.Frame):
         content_frame = tk.Frame(self)
         content_frame.grid(row=0, column=0, sticky="nsew")
         
-        label = tk.Label(content_frame, text="Das ist Seite 2", font=("Arial", 24))
+        label = tk.Label(content_frame, text="Alarm Suche", font=("Arial", 24))
         label.place(relx = 0.5, rely= 0.1, anchor="center")
         
         button = tk.Button(content_frame, text="Menu",
                            command=lambda: controller.show_frame("MenuPage"))
         button.place(relx = 0.05, rely= 0.1, anchor="center")
 
-        first_name_entry = ttk.Entry(content_frame)
-        first_name_entry.place(relx = 0.5, rely= 0.3, anchor="center")
+        label = ttk.Label(content_frame, text="Vorname")
+        label.place(relx = 0.5, rely= 0.3, anchor="center")
 
-        last_name_entry = ttk.Entry(content_frame)
-        last_name_entry.place(relx = 0.5, rely= 0.4, anchor="center")
+        self.entry= ttk.Entry(content_frame, text= "Vorname eingeben")
+        self.entry.place(relx = 0.5, rely= 0.35, anchor= "center")
+        
+        label1 = ttk.Label(content_frame, text="Nachname")
+        label1.place(relx = 0.5, rely= 0.4, anchor="center")
 
+        self.entry1= ttk.Entry(content_frame, text= "Nachname eingeben")
+        self.entry1.place(relx = 0.5, rely= 0.45, anchor= "center")
+
+        search_button = tk.Button(content_frame, text="Suchen", command = self.load_data, font=("Arial", 20),  fg="black")
+        search_button.place(relx = 0.3, rely= 0.4, anchor= "center")
+
+        self.tree = ttk.Treeview(self, columns=("name", "lastname", "symptom", "timestamp"), show='headings')
+        self.tree.heading("name", text="Name")
+        self.tree.heading("lastname", text="Last Name")
+        self.tree.heading("symptom", text="Symptom")
+        self.tree.heading("timestamp", text="Timestamp")
+        
+        self.tree.place(relx = 0.5, rely= 0.7, anchor= "center")
+        
+        # Daten abrufen und in Treeview einfügen
+        self.load_data()
+
+    def load_data(self):
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        data = search_alerts(self.entry.get(), self.entry1.get())
+        if data:
+            for item in data:
+                self.tree.insert("", tk.END, values=(item["name"], item["lastname"], item["symptom"], item["timestamp"]))
+        else:
+            print("No data found")
+
+    
+        
 if __name__ == "__main__":
-    app = MultiPageApp()
+    app = AlarmApp()
     app.mainloop()

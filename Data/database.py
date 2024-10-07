@@ -43,3 +43,36 @@ def is_name_in_pseudonymization(name):
 def is_uuid_in_pseudonymization(unique_id):
     result = session.query(Pseudonymization).filter_by(pseudonym=unique_id).first()
     return result is not None
+
+def search_alerts(firstname, lastname):
+    encrypted_name = crypto.encrypt(firstname)
+    encrypted_lastname = crypto.encrypt(lastname)
+    
+    result = session.query(Pseudonymization).filter_by(real_name=encrypted_name, real_last_name=encrypted_lastname).first()
+    
+    if result is not None:
+        pseudonym = result.pseudonym
+        alerts = session.query(Alarmierungen).filter_by(name=pseudonym).all()
+        
+        # Entschlüsseln der Namen und Nachnamen
+        encrypted_name = result.real_name
+        decrypted_name = crypto.decrypt(encrypted_name)
+        
+        encrypted_lastname = result.real_last_name
+        decrypted_lastname = crypto.decrypt(encrypted_lastname)
+        
+        # Umwandlung der Abfrageergebnisse in ein Dictionary
+        alerts_dict = []
+        for alert in alerts:
+            alert_data = {
+                "name": decrypted_name,  # Entschlüsselter Name
+                "lastname": decrypted_lastname,  # Entschlüsselter Nachname
+                "symptom": alert.symptom,
+                "timestamp": alert.Alarm_recieved  # Beispiel für ein weiteres Attribut
+            }
+            alerts_dict.append(alert_data)
+        
+        print(alerts_dict)
+        return alerts_dict
+    else:
+        return None
