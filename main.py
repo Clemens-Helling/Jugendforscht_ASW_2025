@@ -33,10 +33,16 @@ class AlarmApp(tk.Tk):
         self.show_frame("StartPage")
     
     def show_frame(self, page_name):
-        '''Zeigt den Frame für die gegebene Seite'''
+        """Zeigt den Frame für die gegebene Seite
+
+        Parameters
+        ----------
+        page_name : str
+            Name des Frames
+        """        
         frame = self.frames[page_name]
         frame.tkraise()
-
+    
 # Erste Seite
 class StartPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -64,24 +70,29 @@ class StartPage(tk.Frame):
         menu_button = tk.Button(content_frame, text="Menu",command=lambda: controller.show_frame("MenuPage"))
         menu_button.place(relx = 0.05, rely= 0.05, anchor= "center")  # Abstand nach oben
         
-        self.first_name_insert = ttk.Entry(content_frame, text= "Vorname")
-        self.first_name_insert.insert(0, "Vorname")
-        self.first_name_insert.place(relx = 0.5, rely= 0.3, anchor= "center")  # Abstand nach oben
-        self.first_name_insert.bind("<FocusIn>", lambda event: self.clear_placeholder(event, "Vorname"))
-        self.first_name_insert.bind("<FocusOut>", lambda event: self.add_placeholder(event, "Vorname"))
-        self.first_name_insert.place(relx = 0.5, rely= 0.3, anchor= "center")
-        
+        self.symptoms = ttk.Combobox(content_frame, text= "Symptome", values=["Bauchschmerzen", "Kopfschmerzen", "Akutes Abdomen",
+        "Intox","Tee","Wärmflasche","ACS","Atemnot","Fraktur", "Sportverletzung","Synkope","Panikatake" , "Anaphilaktischer Schock"])
+        self.symptoms.set("Wählen Sie eine Krankheit")
+        self.symptoms.place(relx = 0.5, rely= 0.4, anchor= "center")
+        self.symptoms.bind("<Return>", lambda event: self.get_alarm)
+
         self.last_name_insert = ttk.Entry(content_frame, text= "Nachname")
         self.last_name_insert.insert(0, "Nachname")
         self.last_name_insert.place(relx = 0.5, rely= 0.3, anchor= "center")  # Abstand nach oben
         self.last_name_insert.bind("<FocusIn>", lambda event: self.clear_placeholder(event, "Nachname"))
         self.last_name_insert.bind("<FocusOut>", lambda event: self.add_placeholder(event, "Nachname"))
         self.last_name_insert.place(relx = 0.5, rely= 0.35, anchor= "center")
+        self.last_name_insert.bind("<Return>", lambda event: self.symptoms.focus_set())
 
-        self.symptoms = ttk.Combobox(content_frame, text= "Symptome", values=["Bauchschmerzen", "Kopfschmerzen", "Akutes Abdomen",
-        "Intox","Tee","Wärmflasche","ACS","Atemnot","Fraktur", "Sportverletzung","Synkope","Panikatake" , "Anaphilaktischer Schock"])
-        self.symptoms.set("Wählen Sie eine Krankheit")
-        self.symptoms.place(relx = 0.5, rely= 0.4, anchor= "center")
+        self.first_name_insert = ttk.Entry(content_frame, text= "Vorname")
+        self.first_name_insert.insert(0, "Vorname")
+        self.first_name_insert.place(relx = 0.5, rely= 0.3, anchor= "center")  # Abstand nach oben
+        self.first_name_insert.bind("<FocusIn>", lambda event: self.clear_placeholder(event, "Vorname"))
+        self.first_name_insert.bind("<FocusOut>", lambda event: self.add_placeholder(event, "Vorname"))
+        self.first_name_insert.place(relx = 0.5, rely= 0.3, anchor= "center")
+        self.first_name_insert.bind("<Return>", lambda event: self.last_name_insert.focus_set())
+
+        
 
         unclear_situation_checkbox = ttk.Checkbutton(content_frame, text="Unklare Lage", variable=self.unclear_situation_checkbox_state)
         unclear_situation_checkbox.place(relx = 0.5, rely= 0.45, anchor= "center")
@@ -95,17 +106,40 @@ class StartPage(tk.Frame):
         alert_button = tk.Button(content_frame, text="Alarmieren", command = self.get_alarm, font=("Arial", 20), bg="red", fg="white")
         alert_button.place(relx = 0.5, rely= 0.65, anchor= "center")
 
+        reset_button = tk.Button(content_frame, text="Reset", command = self.clear_entries, font=("Arial", 20))
+        reset_button.place(relx = 0.7, rely= 0.65, anchor= "center")
     def toggle_textfield(self):
+        """zeigt bei bedarf das Textfeld an oder versteckt es wieder
+        """
         if self.other_checkbox_state.get():
             self.other_entry.place(relx=0.5, rely=0.55, anchor="center")  # Zeigt das Textfeld an
         else:
             self.other_entry.place_forget()  # Versteckt das Textfeld
     def clear_placeholder(self, event, placeholder):
+        """Löscht die Platzhaltertexte, wenn das Entry-Widget fokussiert wird
+
+        Parameters
+        ----------
+        event : tk.Event
+            Das Event-Objekt
+        placeholder : str
+            Der Platzhaltertext
+        """
         if event.widget.get() == placeholder:
             event.widget.delete(0, tk.END)
             event.widget.config(foreground='black')
 
     def add_placeholder(self, event, placeholder):
+        """Fügt die Platzhaltertexte wieder hinzu, wenn das Entry-Widget den Fokus verliert
+
+        Parameters
+        ----------
+        event : tk.Event
+            Das Event-Objekt
+
+        placeholder : str
+            Der Platzhaltertext
+        """
         current_text = event.widget.get()
         if current_text == "" or current_text == placeholder:
             event.widget.delete(0, tk.END)
@@ -113,11 +147,20 @@ class StartPage(tk.Frame):
             event.widget.config(foreground='grey')
 
     def show_error(self, message):
+        """Zeigt eine Fehlermeldung an
+
+        Parameters
+        ----------
+        message : str
+            Nachricht die angezeigt werden soll
+        """
         messagebox.showerror("Fehler", message)
           # Abstand nach oben
     def get_alarm(self):
+        """ Sendet den Alar, speichert die Daten und zeigt eine Erfolgsmeldung an
+        """
         print("Alarmieren")
-        messagebox.showinfo("Alarm", "Alarm wurde gesendet")  # Debugging-Ausgabe
+          # Debugging-Ausgabe
         erkankung = self.symptoms.get()
         name = self.first_name_insert.get()
         last_name = self.last_name_insert.get()
@@ -126,13 +169,19 @@ class StartPage(tk.Frame):
             
         elif self.other_checkbox_state.get():
             erkankung = self.other_entry.get()
-        
-        result = alarm(erkankung, name, last_name )
-    
+        stripped_name = name.replace(" ", "")
+        stripped_last_name = last_name.replace(" ", "")
+        result = alarm(erkankung, stripped_name, stripped_last_name )
+        messagebox.showinfo("Alarm", "Alarm wurde gesendet")
         if result == "keine Krankheit ausgewählt":
                 print("Fehler: Keine Krankheit ausgewählt")  # Debugging-Ausgabe
                 self.show_error("Bitte wählen Sie eine Krankheit")
-       
+
+    def clear_entries(self):
+        """Löscht die Eingaben in den Entry-Widgets
+        """
+        self.first_name_insert.delete(0, tk.END)
+        self.last_name_insert.delete(0, tk.END)   
 # Zweite Seite
 class MenuPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -180,12 +229,14 @@ class PageTwo(tk.Frame):
 
         self.entry= ttk.Entry(content_frame, text= "Vorname eingeben")
         self.entry.place(relx = 0.5, rely= 0.35, anchor= "center")
+        self.entry.bind("<Return>", lambda event: self.entry1.focus_set())
         
         label1 = ttk.Label(content_frame, text="Nachname")
         label1.place(relx = 0.5, rely= 0.4, anchor="center")
 
         self.entry1= ttk.Entry(content_frame, text= "Nachname eingeben")
         self.entry1.place(relx = 0.5, rely= 0.45, anchor= "center")
+        self.entry1.bind("<Return>", lambda event: self.load_data())
 
         search_button = tk.Button(content_frame, text="Suchen", command = self.load_data, font=("Arial", 20),  fg="black")
         search_button.place(relx = 0.3, rely= 0.4, anchor= "center")
@@ -202,9 +253,13 @@ class PageTwo(tk.Frame):
         self.load_data()
 
     def load_data(self):
+        """Lädt die Daten in die Treeview
+        """
         for item in self.tree.get_children():
             self.tree.delete(item)
-        data = search_alerts(self.entry.get(), self.entry1.get())
+        entry_value = self.entry.get().replace(" ", "").strip()
+        entry1_value = self.entry1.get().replace(" ", "").strip()
+        data = search_alerts(entry_value, entry1_value)
         if data:
             for item in data:
                 self.tree.insert("", tk.END, values=(item["name"], item["lastname"], item["symptom"], item["timestamp"]))

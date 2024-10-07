@@ -32,3 +32,15 @@ class Pseudonymization(Base):
 
     def __str__(self):
         return f"Pseudonymization(real_name='{self.real_name}', real_last_name='{self.real_last_name}', pseudonym='{self.pseudonym}')"
+    
+class Schueler(Base):
+    __tablename__ = 'Sanitäter'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(50), nullable=False)
+    last_name = Column(String(50), nullable=False)
+    lernbegleiter = Column(String(50))
+    karten_nummer = Column(String(20))
+
+    def __repr__(self):
+        return f"<Schueler(id={self.id}, name={self.name}, last_name={self.last_name}, lernbegleiter={self.lernbegleiter}, karten_nummer={self.karten_nummer})>"

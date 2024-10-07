@@ -7,6 +7,13 @@ key_file_path = "key.key"
 
 # Funktion zum Laden des Schlüssels
 def load_key():
+    """Lädt den Schlüssel aus der Schlüsseldatei oder generiert einen neuen Schlüssel und speichert ihn in der Schlüsseldatei.
+
+    Returns
+    -------
+    key : bytes
+        Der geladene oder generierte Schlüssel.
+    """
     if os.path.exists(key_file_path):
         with open(key_file_path, "rb") as key_file:
             key = key_file.read()
@@ -26,6 +33,18 @@ iv = b'0123456789abcdef'  # 16 Bytes IV für AES
 
 # Verschlüssele die gepolsterten Daten
 def encrypt(data):
+    """Verschlüsselt die Daten mit AES-CBC und gibt die verschlüsselten Daten zurück.
+
+    Parameters
+    ----------
+    data : any
+        Die zu verschlüsselnden Daten.
+
+    Returns
+    -------
+    bytes
+        die verschlüsselten Daten
+    """
     if isinstance(data, str):
         data = data.encode()  # Konvertiere in Bytes, falls es sich um einen String handelt
     gepolsterte_daten = pad(data, AES.block_size)
@@ -34,6 +53,18 @@ def encrypt(data):
 
 # Entschlüssele die Daten
 def decrypt(data):
+    """Entschlüsselt die Daten mit AES-CBC und gibt die entschlüsselten Daten zurück.
+
+    Parameters
+    ----------
+    data : bytes
+        Die 
+
+    Returns
+    -------
+    any
+        Die entschlüsselten Daten.
+    """
     cipher_decrypt = AES.new(key, AES.MODE_CBC, iv)  # Entschlüsselungsobjekt hier erstellen
     entschluesselte_daten = cipher_decrypt.decrypt(data)
     return unpad(entschluesselte_daten, AES.block_size).decode()

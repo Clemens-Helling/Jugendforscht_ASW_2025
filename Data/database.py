@@ -13,6 +13,17 @@ session = Session()
 Base.metadata.create_all(engine)
 
 def add_alarm(name, lastname, symptom):
+    """Fügt einen Alarm zur Datenbank hinzu.
+
+    Parameters
+    ----------
+    name : str  
+        Der Name des Patienten.
+    lastname : str  
+        der Nachname des Patienten.
+    symptom : str
+        Das Symptom des Patienten.
+    """
     unique_id = str(uuid.uuid4())
     global pseudonym
     if not is_uuid_in_pseudonymization(unique_id) and not is_name_in_pseudonymization(name):
@@ -35,16 +46,54 @@ def add_alarm(name, lastname, symptom):
         session.commit()
 
 def is_name_in_pseudonymization(name):
+    """Überprüft, ob ein Name bereits in der Pseudonymisierungstabelle vorhanden ist.
+
+    Parameters
+    ----------
+    name : str
+        Name, der überprüft werden soll.
+
+    Returns
+    -------
+    str
+        Ergebnis der Überprüfung.
+    """
     encrypted_name = crypto.encrypt(name)
     result = session.query(Pseudonymization).filter_by(real_name=encrypted_name).first()
     print(result)
     return result is not None
 
 def is_uuid_in_pseudonymization(unique_id):
+    """Überprüft, ob ein Pseudonym bereits in der Pseudonymisierungstabelle vorhanden ist.
+
+    Parameters
+    ----------
+    unique_id : str
+        Das Pseudonym, das überprüft werden soll.
+
+    Returns
+    -------
+    _type_
+        das Ergebnis der Überprüfung.
+    """
     result = session.query(Pseudonymization).filter_by(pseudonym=unique_id).first()
     return result is not None
 
 def search_alerts(firstname, lastname):
+    """Sucht nach Alarmen in der Datenbank.
+
+    Parameters
+    ----------
+    firstname : str
+        Vorname des Patienten dessen Daten gesucht werden sollen.
+    lastname : str
+        Nachname des Patienten dessen Daten gesucht werden sollen.
+
+    Returns
+    -------
+    dict
+        Ein Dictionary mit den gefunden
+    """
     encrypted_name = crypto.encrypt(firstname)
     encrypted_lastname = crypto.encrypt(lastname)
     
