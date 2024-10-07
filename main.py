@@ -92,7 +92,7 @@ class StartPage(tk.Frame):
         self.other_entry = ttk.Entry(content_frame)
         
         alert_button = tk.Button(content_frame, text="Alarmieren", command = self.get_alarm, font=("Arial", 20), bg="red", fg="white")
-        alert_button.place(relx = 0.5, rely= 0.6, anchor= "center")
+        alert_button.place(relx = 0.5, rely= 0.8, anchor= "center")
     def toggle_textfield(self):
         if self.other_checkbox_state.get():
             self.other_entry.place(relx=0.5, rely=0.55, anchor="center")  # Zeigt das Textfeld an
@@ -114,7 +114,8 @@ class StartPage(tk.Frame):
         messagebox.showerror("Fehler", message)
           # Abstand nach oben
     def get_alarm(self):
-        print("Alarmieren")  # Debugging-Ausgabe
+        print("Alarmieren")
+        messagebox.showinfo("Alarm", "Alarm wurde gesendet")  # Debugging-Ausgabe
         erkankung = self.symptoms.get()
         name = self.first_name_insert.get()
         last_name = self.last_name_insert.get()
