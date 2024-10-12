@@ -173,3 +173,21 @@ def get_all_active_alerts():
         alerts_dict.append(allert_data)
         print(alerts_dict)
     return alerts_dict
+
+
+def add_health_data(alert_id, pulse, spo2, blood_pressure, temperature, blood_suger, pain):
+    alert = session.query(Alarmierungen).filter_by(id=alert_id).first()
+    alert.pulse = pulse
+    alert.spo2 = spo2
+    alert.blood_pressure = blood_pressure
+    alert.temperature = temperature
+    alert.blood_suger = blood_suger
+    alert.pain = pain
+    
+    session.commit()
+
+def add_alert_data(alert_id, teacher, measures):
+    alert = session.query(Alarmierungen).filter_by(id=alert_id).first()
+    alert.teacher = teacher
+    alert.measures = measures
+    session.commit()

@@ -18,7 +18,7 @@ class AlarmWidget(Frame):
         self.button.pack(side=RIGHT, padx=5, pady=5)
     def accept_alarm(self):
         print("Alarm angenommen")
-        actual_alarm = self.alarm_id
+        self.controller.aktueller_einsatz= self.alarm_id
         self.controller.show_frame("StartPage")
         return "accepted"
 

@@ -13,10 +13,18 @@ class Alarmierungen(Base):
     Alarm_recieved = Column(DateTime, default=datetime.datetime.now)
     alarm_type = Column(String(50))
     symptom = Column(String(50))
-    measures = Column(String(200))
     operation_end = Column(DateTime)
     operationsmanager= Column(String(50))
     status = Column(String(50))
+    pulse = Column(Integer)
+    spo2 = Column(Integer)
+    blood_pressure = Column(String(30))
+    temperature = Column(Integer)
+    blood_suger = Column(Integer)
+    pain = Column(Integer)  
+    measures = Column(String(50))
+
+
     def __repr__(self):
         return f"<Alarmierungen(name='{self.name}', description='{self.symptom}')>"
     
