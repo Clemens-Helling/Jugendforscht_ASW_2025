@@ -16,6 +16,7 @@ class Alarmierungen(Base):
     measures = Column(String(200))
     operation_end = Column(DateTime)
     operationsmanager= Column(String(50))
+    status = Column(String(50))
     def __repr__(self):
         return f"<Alarmierungen(name='{self.name}', description='{self.symptom}')>"
     

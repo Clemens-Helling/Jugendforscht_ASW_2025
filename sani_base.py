@@ -2,7 +2,8 @@ import tkinter as tk
 from tkinter import ttk
 from Alert.alarm import alarm
 from tkinter import messagebox
-from Data.database import search_alerts
+from Data.database import search_alerts, get_all_active_alerts
+from assets.widgets import AlarmWidget
 class AlarmApp(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -11,6 +12,7 @@ class AlarmApp(tk.Tk):
         self.geometry("800x600")
         self.iconbitmap("sirene.ico")
         # Container für die Seiten (Frames)
+        aktueller_einsatz = "" 
         container = tk.Frame(self)
         container.pack(side="top", fill="both", expand=True)
         
@@ -21,7 +23,7 @@ class AlarmApp(tk.Tk):
         # Frames speichern
         self.frames = {}
         
-        for F in (LoginPage, StartPage, MenuPage):
+        for F in (LoginPage, StartPage, MenuPage, AlertsPage):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -36,6 +38,7 @@ class AlarmApp(tk.Tk):
         '''Zeigt den Frame für die gegebene Seite'''
         frame = self.frames[page_name]
         frame.tkraise()
+   
 
 # Erste Seite
 class LoginPage(tk.Frame):
@@ -95,7 +98,7 @@ class LoginPage(tk.Frame):
         """Überprüft die eingegebenen Daten und zeigt die Startseite an, wenn sie korrekt sind.
         """
         if self.username == self.username_entry.get() and self.passwort == self.password_entry.get():
-            self.controller.show_frame("StartPage")
+            self.controller.show_frame("AlertsPage")
         else:
             self.show_error("Benutzername oder Passwort falsch")   
 # Zweite Seite
@@ -110,12 +113,31 @@ class StartPage(tk.Frame):
         content_frame = tk.Frame(self)
         content_frame.grid(row=0, column=0, sticky="nsew")
         
-        label = tk.Label(content_frame, text="Startseite",font=("Arial", 24))
+        label = tk.Label(content_frame, text="Datenerfassung",font=("Arial", 24))
         label.place(relx = 0.5, rely= 0.1, anchor="center") 
         
         button = tk.Button(content_frame, text="Menu", 
                            command=lambda: controller.show_frame("MenuPage"))
         button.place(relx = 0.1, rely= 0.1, anchor="center")
+
+        lb_label = tk.Label(content_frame, text="Lernbegleiter")
+        lb_label.place(relx = 0.5, rely= 0.2, anchor="center")
+
+        lb_entry = tk.Entry(content_frame)
+        lb_entry.place(relx = 0.5, rely= 0.25, anchor="center")
+
+        maßnahme_label = tk.Label(content_frame, text="Maßnahme")
+        maßnahme_label.place(relx = 0.5, rely= 0.4, anchor="center")
+
+        maßnahme_entry = tk.Entry(content_frame)
+        maßnahme_entry.place(relx = 0.5, rely= 0.45, anchor="center")
+
+        health_data_button = tk.Button(content_frame, text="Gesundheitsdaten erfassen",)
+        health_data_button.place(relx = 0.3, rely= 0.6, anchor="center")
+
+        send_to_operations_maneger_button = tk.Button(content_frame, text="An Einsatzleitung senden",)
+        send_to_operations_maneger_button.place(relx = 0.7, rely= 0.6, anchor="center")
+
 
         
 
@@ -138,9 +160,38 @@ class MenuPage(tk.Frame):
                            command=lambda: controller.show_frame("StartPage"))
         button.place(relx = 0.5, rely= 0.2, anchor="center")
 
+        button1 = tk.Button(content_frame, text="Alarme", 
+                           command=lambda: controller.show_frame("AlertsPage"))
+        button1.place(relx = 0.5, rely= 0.3, anchor="center")
        
+class AlertsPage(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
 
-    
+        content_frame = tk.Frame(self)
+        content_frame.grid(row=0, column=0, sticky="nsew")
+        
+        alerts_frame = tk.Frame(content_frame )
+        alerts_frame.place(relx=0.5, rely=0.5, anchor="center", relwidth=0.8, relheight=0.8)
+
+        label = tk.Label(content_frame, text="Alarme", font=("Arial", 24))
+        label.place(relx=0.5, rely=0.1, anchor="center")
+
+        alerts = get_all_active_alerts()
+
+        for i, alert in enumerate(alerts):
+            widget = AlarmWidget( parent= alerts_frame, controller=controller , alarm_name=alert["name"],  alarm_id= alert["id"])
+            row = i // 3
+            col = i % 3
+            relx = col * 0.33 + 0.05  # 0.33 relative Breite pro Widget + 0.05 relativer Abstand
+            rely = row * 0.33 + 0.05  # 0.33 relative Höhe pro Widget + 0.05 relativer Abstand
+            widget.place(relx=relx, rely=rely, relwidth=0.28, relheight=0.28)  # Platzieren Sie das Widget mit relativen Koordinaten
+              # Platzieren Sie das Widget mit relativen Koordinaten
+        """Übernimmt den Alarm und setzt den Status auf 'behandelt'."""
         
 if __name__ == "__main__":
     app = AlarmApp()

@@ -30,7 +30,7 @@ def add_alarm(name, lastname, symptom):
         encrypted_name = crypto.encrypt(name)
         encrypted_last_name = crypto.encrypt(lastname)
         entry = Pseudonymization(real_name=encrypted_name, real_last_name=encrypted_last_name, pseudonym=unique_id)
-        alarm = Alarmierungen(name=unique_id, lastname=unique_id, symptom=symptom)
+        alarm = Alarmierungen(name=unique_id, lastname=unique_id, symptom=symptom, status= "aktive")
         session.add(alarm)
         session.add(entry)
         session.commit()
@@ -41,7 +41,7 @@ def add_alarm(name, lastname, symptom):
         pseudonym = session.query(Pseudonymization).filter_by(real_name=encrypted_name).first().pseudonym
         
         print(pseudonym)
-        alarm = Alarmierungen(name=pseudonym, lastname=pseudonym, symptom=symptom)
+        alarm = Alarmierungen(name=pseudonym, lastname=pseudonym, symptom=symptom, status= "aktive")
         session.add(alarm)
         session.commit()
 
@@ -125,3 +125,51 @@ def search_alerts(firstname, lastname):
         return alerts_dict
     else:
         return None
+def find_real_name(pseudonym):
+    """Findet den echten Namen eines Patienten anhand seines Pseudonyms.
+
+
+    Parameters
+    ----------
+    pseudonym : str
+        Das Pseudonym des Patienten.
+
+    Returns
+    -------
+    str
+        Der echte Name des Patienten.
+    """
+    
+    result = session.query(Pseudonymization).filter_by(pseudonym=pseudonym).first()
+    if result is not None:
+        encrypted_name = result.real_name
+        decrypted_name = crypto.decrypt(encrypted_name)
+        return decrypted_name
+    else:
+        return None 
+    
+def find_real_lastname(pseudonym):
+    result = session.query(Pseudonymization).filter_by(pseudonym=pseudonym).first()
+    if result is not None:
+        encrypted_lastname = result.real_last_name
+        decrypted_lastname = crypto.decrypt(encrypted_lastname)
+        return decrypted_lastname
+    else:
+        return None
+
+def get_all_active_alerts():
+    alerts = session.query(Alarmierungen).filter_by(status="aktive").all()
+    alerts_dict = []
+    for alert in alerts:
+        name = find_real_name(alert.name)
+        last_name = find_real_lastname(alert.lastname)
+        allert_data = {
+            "id": alert.id,
+            "name": name,
+            "lastname": last_name,
+            "symptom": alert.symptom,
+            "timestamp": alert.Alarm_recieved
+        }
+        alerts_dict.append(allert_data)
+        print(alerts_dict)
+    return alerts_dict
