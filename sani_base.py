@@ -8,7 +8,7 @@ class AlarmApp(tk.Tk):
     def __init__(self):
         super().__init__()
         
-        self.title("Notifyer Sanibase")
+        self.title("Notifier Sanibase")
         self.geometry("800x600")
         self.iconbitmap("sirene.ico")
         # Container für die Seiten (Frames)
@@ -75,7 +75,7 @@ class LoginPage(tk.Frame):
         content_frame = tk.Frame(self)
         content_frame.grid(row=0, column=0, sticky="nsew")  # Inhalt ausfüllen
         
-        label = tk.Label(content_frame, text="Notifyer", font=("Arial", 24))
+        label = tk.Label(content_frame, text="Notifier", font=("Arial", 24))
         label.place(relx = 0.5, rely= 0.1, anchor="center")  # Abstand nach oben
         
         
