@@ -18,7 +18,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2  # Setzt die Python-Version
       with:
-        python-version: '3.8'  # Stelle sicher, dass die Version hier korrekt ist
+        python-version: '3.12.2'  # Stelle sicher, dass die Version hier korrekt ist
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
