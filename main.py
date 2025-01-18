@@ -2,14 +2,15 @@ import tkinter as tk
 from tkinter import ttk
 from Alert.alarm import alarm
 from tkinter import messagebox
-from Data.database import search_alerts
+from Data.database import search_alerts, add_accsess_key
+from rfid.rfid import RFIDReader
 class AlarmApp(tk.Tk):
     def __init__(self):
         super().__init__()
         
         self.title("Notifyer Base")
         self.geometry("800x600")
-        self.iconbitmap("sirene.ico")
+
         # Container für die Seiten (Frames)
         container = tk.Frame(self)
         container.pack(side="top", fill="both", expand=True)
@@ -21,7 +22,7 @@ class AlarmApp(tk.Tk):
         # Frames speichern
         self.frames = {}
         
-        for F in (StartPage, MenuPage, PageTwo):
+        for F in (StartPage, MenuPage, PageTwo, RFIDPage):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -205,6 +206,8 @@ class MenuPage(tk.Frame):
                            command=lambda: controller.show_frame("PageTwo"))
         button2.place(relx = 0.5, rely= 0.3, anchor="center")
 
+        button3 = tk.Button(content_frame, text="RFID", command=lambda: controller.show_frame("RFIDPage"))
+        button3.place(relx = 0.5, rely= 0.4, anchor="center")
 # Dritte Seite
 class PageTwo(tk.Frame):
     def __init__(self, parent, controller):
@@ -265,6 +268,61 @@ class PageTwo(tk.Frame):
                 self.tree.insert("", tk.END, values=(item["name"], item["lastname"], item["symptom"], item["timestamp"]))
         else:
             print("No data found")
+
+class RFIDPage(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        content_frame = tk.Frame(self)
+        content_frame.grid(row=0, column=0, sticky="nsew")
+
+        self.label = tk.Label(content_frame, text="Zugangskontrolle", font=("Arial", 24))
+        self.label.place(relx = 0.5, rely= 0.1, anchor="center")
+
+        self.button = tk.Button(content_frame, text="Menu",
+                           command=lambda: controller.show_frame("MenuPage"))
+        self.button.place(relx = 0.05, rely= 0.1, anchor="center")
+
+        self.firstname_entry = ttk.Entry(content_frame, text="Vorname")
+        self.firstname_entry.place(relx = 0.3, rely= 0.2, anchor="center")
+
+        self.lastname_entry = ttk.Entry(content_frame, text="Nachname")
+        self.lastname_entry.place(relx = 0.7, rely= 0.2, anchor="center")
+
+        self.treeview = ttk.Treeview(content_frame, columns=("Name", "Nachname", "Letzter Zugriff", "UUID"), show='headings')
+        self.treeview.heading("Name", text="Name")
+        self.treeview.heading("Nachname", text="Nachname")
+        self.treeview.heading("Letzter Zugriff", text="Letzter Zugriff")
+        self.treeview.heading("UUID", text="UUID")
+        self.treeview.place(relx = 0.5, rely= 0.5, anchor="center")
+
+        self.delete_accsess_button = tk.Button(content_frame, text="Zugriff löschen", font=("Arial", 15), bg="red", fg="white")
+        self.delete_accsess_button.place(relx = 0.7, rely= 0.8, anchor="center")
+
+        self.add_accsess_key_button = tk.Button(content_frame, text="RFID Chip hinzufügen", font=("Arial", 15), bg="green", fg="white", command= self.add_accsess_key)
+        self.add_accsess_key_button.place(relx = 0.3, rely= 0.8, anchor="center")
+
+    def add_accsess_key(self):
+        self.reader = RFIDReader()
+        self.key = self.reader.read_data()
+        messagebox.showinfo("RFID",
+                            f"Bitte halten sie den Chip von: {self.firstname_entry.get()} {self.lastname_entry.get()} an den Leser")
+        # Annahme: add_accsess_key ist eine Methode zum Speichern des Schlüssels
+        add_accsess_key(self.firstname_entry.get(), self.lastname_entry.get(), self.key)
+        messagebox.showinfo("RFID", "Zugriffsschlüssel wurde hinzugefügt")
+
+
+
+
+
+
+
+
+
 
     
         

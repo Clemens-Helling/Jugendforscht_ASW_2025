@@ -12,7 +12,7 @@ class RFIDReader:
             id, text = self.reader.read()
             print(f"ID: {id}")
             print(f"Text: {text}")
-            return id, text
+            return id
         except Exception as e:
             print(f"An error occurred: {e}")
         finally:

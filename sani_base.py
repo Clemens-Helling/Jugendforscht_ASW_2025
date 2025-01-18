@@ -2,8 +2,9 @@ import tkinter as tk
 from tkinter import ttk
 from Alert.alarm import alarm
 from tkinter import messagebox
-from Data.database import search_alerts, get_all_active_alerts, add_health_data, add_alert_data
+from Data.database import search_alerts, get_all_active_alerts, add_health_data, add_alert_data, check_accsess_premission
 from assets.widgets import AlarmWidget
+from rfid import RFIDReader
 class AlarmApp(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -38,7 +39,7 @@ class AlarmApp(tk.Tk):
         login_page = self.frames["LoginPage"]
         login_page.set_target_site(zielseite)
         self.show_frame("LoginPage")
-        
+
     def set_login_target_site(self, target_site):
         login_page = self.frames["LoginPage"]
         login_page.set_target_site(target_site)
@@ -55,8 +56,7 @@ class LoginPage(tk.Frame):
         super().__init__(parent)
         # Benutzername und Passwort für den Login sind nur für Testzwecke festgelegt
         # und werden in zukunft durch eine Datenbank ersetzt
-        self.username = "Clemens"
-        self.passwort = "1234"
+
         self.controller = controller
         self.unclear_situation_checkbox_state = tk.IntVar()
         self.other_checkbox_state = tk.IntVar()
@@ -109,10 +109,12 @@ class LoginPage(tk.Frame):
     def login(self, target_site: str):
         """Überprüft die eingegebenen Daten und zeigt die Startseite an, wenn sie korrekt sind.
         """
-        if self.username == self.username_entry.get() and self.passwort == self.password_entry.get():
+        reader = RFIDReader()
+        self.uuid = reader.read_data()
+        if check_accsess_premission(self.uuid):
             self.controller.show_frame(target_site)
         else:
-            self.show_error("Benutzername oder Passwort falsch")  
+            self.show_error("Karte nicht erkannt")
     def set_target_site(self, target_site):
         self.target_site = target_site 
 # Zweite Seite

@@ -1,11 +1,11 @@
 import uuid
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from Data.models import Base, Alarmierungen, Pseudonymization
+from Data.models import Base, Alarmierungen, Pseudonymization, Medics
 import datetime
 from Data import crypto
 
-print("Database.py")
+
 engine = create_engine('mysql+pymysql://root:Flecki2022#@localhost:3306/notifyer')
  
 Session = sessionmaker(bind=engine)
@@ -191,3 +191,21 @@ def add_alert_data(alert_id, teacher, measures):
     alert.teacher = teacher
     alert.measures = measures
     session.commit()
+
+def add_accsess_key(firstname, lastname, key):
+    medic = session.query(Medics).filter_by(name=firstname, last_name=lastname).first()
+    medic.karten_nummer = key
+    session.commit()
+
+def delete_accsess_key(firstname, lastname):
+    medic = session.query(Medics).filter_by(name=firstname, last_name=lastname).first()
+    medic.karten_nummer = None
+    session.commit()
+
+def check_accsess_premission(key):
+    medic = session.query(Medics).filter_by(karten_nummer=key).first()
+    if medic is not None:
+        return True
+    else:
+        return False
+
