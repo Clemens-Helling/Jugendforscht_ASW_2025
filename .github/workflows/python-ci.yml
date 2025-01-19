@@ -12,6 +12,20 @@ jobs:
   test:
     runs-on: ubuntu-latest  # Verwenden von Ubuntu als Betriebssystem
 
+    services:
+      mysql:
+        image: mysql:5.7  # MySQL Docker-Image (Version 5.7 oder eine andere Version)
+        env:
+          MYSQL_ROOT_PASSWORD: Flecki2022#  # Setzt das Root-Passwort
+          MYSQL_DATABASE: notifyer  # Erstelle eine Test-Datenbank
+        ports:
+          - 3306:3306  # Leitet den MySQL-Port weiter
+        options: >-
+          --health-cmd="mysqladmin ping --silent"  # Überprüft, ob MySQL läuft
+          --health-interval=5s  # Wie häufig die Gesundheitsprüfung durchgeführt wird
+          --health-timeout=5s
+          --health-retries=3  # Anzahl der Versuche, bevor der Container als "ungesund" gilt
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v2  # Lädt deinen Code herunter
@@ -23,6 +37,12 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt  # Installiert alle Abhängigkeiten
+    - name: Wait for MySQL to be ready
+      run: |
+        while ! mysqladmin -h127.0.0.1 -uroot -prootpassword ping --silent; do
+          echo "Waiting for MySQL to be ready..."
+          sleep 3
+        done
     - name: Run tests
       run: |
         pytest  # Führt die Tests aus
