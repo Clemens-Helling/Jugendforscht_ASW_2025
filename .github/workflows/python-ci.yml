@@ -14,17 +14,17 @@ jobs:
 
     services:
       mysql:
-        image: mysql:5.7  # MySQL Docker-Image (Version 5.7 oder eine andere Version)
+        image: mysql:5.7
         env:
-          MYSQL_ROOT_PASSWORD: Flecki2022#  # Setzt das Root-Passwort
-          MYSQL_DATABASE: notifyer  # Erstelle eine Test-Datenbank
+          MYSQL_ROOT_PASSWORD: Flecki2022#
+          MYSQL_DATABASE: notifyer
         ports:
-          - 3306:3306  # Leitet den MySQL-Port weiter
-        options: >-
-          --health-cmd="mysqladmin ping --silent"  # Überprüft, ob MySQL läuft
-          --health-interval=5s  # Wie häufig die Gesundheitsprüfung durchgeführt wird
+          - 3306:3306
+        options: >
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=5s
           --health-timeout=5s
-          --health-retries=3  # Anzahl der Versuche, bevor der Container als "ungesund" gilt
+          --health-retries=3
 
     steps:
     - name: Checkout code
