@@ -3,7 +3,7 @@ from tkinter import ttk
 from Alert.alarm import alarm
 from tkinter import messagebox
 from Data.database import search_alerts, add_accsess_key
-from rfid.rfid import RFIDReader
+
 class AlarmApp(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -303,17 +303,10 @@ class RFIDPage(tk.Frame):
         self.delete_accsess_button = tk.Button(content_frame, text="Zugriff löschen", font=("Arial", 15), bg="red", fg="white")
         self.delete_accsess_button.place(relx = 0.7, rely= 0.8, anchor="center")
 
-        self.add_accsess_key_button = tk.Button(content_frame, text="RFID Chip hinzufügen", font=("Arial", 15), bg="green", fg="white", command= self.add_accsess_key)
+        self.add_accsess_key_button = tk.Button(content_frame, text="RFID Chip hinzufügen", font=("Arial", 15), bg="green", fg="white")
         self.add_accsess_key_button.place(relx = 0.3, rely= 0.8, anchor="center")
 
-    def add_accsess_key(self):
-        self.reader = RFIDReader()
-        self.key = self.reader.read_data()
-        messagebox.showinfo("RFID",
-                            f"Bitte halten sie den Chip von: {self.firstname_entry.get()} {self.lastname_entry.get()} an den Leser")
-        # Annahme: add_accsess_key ist eine Methode zum Speichern des Schlüssels
-        add_accsess_key(self.firstname_entry.get(), self.lastname_entry.get(), self.key)
-        messagebox.showinfo("RFID", "Zugriffsschlüssel wurde hinzugefügt")
+
 
 
 
