@@ -11,7 +11,7 @@ class AlarmApp(tk.Tk):
         
         self.title("Notifier Sanibase")
         self.geometry("800x600")
-        self.iconbitmap("sirene.ico")
+
         # Container für die Seiten (Frames)
         aktueller_einsatz = "" 
         container = tk.Frame(self)
@@ -80,17 +80,7 @@ class LoginPage(tk.Frame):
         
         
 
-        label2 = tk.Label(content_frame, text="Benutzername")
-        label2.place(relx = 0.5, rely= 0.3, anchor="center")
 
-        self.username_entry = ttk.Entry(content_frame)
-        self.username_entry.place(relx = 0.5, rely= 0.35, anchor="center")
-
-        self.label3 = tk.Label(content_frame, text="Passwort")
-        self.label3.place(relx = 0.5, rely= 0.4, anchor="center")
-
-        self.password_entry = ttk.Entry(content_frame, show="*")
-        self.password_entry.place(relx = 0.5, rely= 0.45, anchor="center")
 
         login_button = tk.Button(content_frame, text="Login", command=lambda: self.login(self.target_site))
         login_button.place(relx = 0.5, rely= 0.55, anchor="center")
@@ -109,8 +99,11 @@ class LoginPage(tk.Frame):
     def login(self, target_site: str):
         """Überprüft die eingegebenen Daten und zeigt die Startseite an, wenn sie korrekt sind.
         """
+        messagebox.showinfo("Info", "Bitte Karte an das Lesegerät halten")
         reader = RFIDReader()
         self.uuid = reader.read_data()
+        if self.uuid:
+            messagebox.showinfo("Info", "Karte erkannt")
         if check_accsess_premission(self.uuid):
             self.controller.show_frame(target_site)
         else:

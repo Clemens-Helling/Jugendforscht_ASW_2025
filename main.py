@@ -22,7 +22,7 @@ class AlarmApp(tk.Tk):
         # Frames speichern
         self.frames = {}
         
-        for F in (StartPage, MenuPage, PageTwo, RFIDPage):
+        for F in (StartPage, MenuPage, PageTwo, RFIDPage, UserPage):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -208,6 +208,9 @@ class MenuPage(tk.Frame):
 
         button3 = tk.Button(content_frame, text="RFID", command=lambda: controller.show_frame("RFIDPage"))
         button3.place(relx = 0.5, rely= 0.4, anchor="center")
+
+        button4 = tk.Button(content_frame, text="Benutzer", command=lambda: controller.show_frame("UserPage"))
+        button4.place(relx = 0.5, rely= 0.5, anchor="center")
 # Dritte Seite
 class PageTwo(tk.Frame):
     def __init__(self, parent, controller):
@@ -305,6 +308,44 @@ class RFIDPage(tk.Frame):
 
         self.add_accsess_key_button = tk.Button(content_frame, text="RFID Chip hinzufügen", font=("Arial", 15), bg="green", fg="white")
         self.add_accsess_key_button.place(relx = 0.3, rely= 0.8, anchor="center")
+
+class UserPage(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        content_frame = tk.Frame(self)
+        content_frame.grid(row=0, column=0, sticky="nsew")
+
+        self.label = tk.Label(content_frame, text="Benutzter hinzufügen", font=("Arial", 24))
+        self.label.place(relx = 0.5, rely= 0.1, anchor="center")
+
+        self.button = tk.Button(content_frame, text="Menu",
+                           command=lambda: controller.show_frame("MenuPage"))
+        self.button.place(relx = 0.05, rely= 0.1, anchor="center")
+
+        self.firstname_entry = ttk.Entry(content_frame, text="Vorname")
+        self.firstname_entry.place(relx = 0.5, rely= 0.2, anchor="center")
+
+        self.lastname_entry = ttk.Entry(content_frame, text="Nachname")
+        self.lastname_entry.place(relx = 0.5, rely= 0.3, anchor="center")
+
+        self.lb_entry = ttk.Entry(content_frame, text="Lerbegleiter")
+        self.lb_entry.place(relx = 0.5, rely= 0.4, anchor="center")
+
+        self.privilage_combobox = ttk.Combobox(content_frame, text="Berechtigung", values=["Admin", "Sanitäter", "Benutzer", "Sanitäter+"])
+        self.privilage_combobox.set("Berechtigung")
+        self.privilage_combobox.place(relx = 0.5, rely= 0.5, anchor="center")
+
+        self.delete_accsess_button = tk.Button(content_frame, text="Benutzter entfernen", font=("Arial", 15), bg="red", fg="white")
+        self.delete_accsess_button.place(relx = 0.7, rely= 0.8, anchor="center")
+
+        self.add_accsess_key_button = tk.Button(content_frame, text="Benutzter hinzufügen", font=("Arial", 15), bg="green", fg="white")
+        self.add_accsess_key_button.place(relx = 0.3, rely= 0.8, anchor="center")
+
 
 
 
