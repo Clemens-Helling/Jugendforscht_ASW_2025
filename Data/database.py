@@ -186,10 +186,11 @@ def add_health_data(alert_id, pulse, spo2, blood_pressure, temperature, blood_su
     
     session.commit()
 
-def add_alert_data(alert_id, teacher, measures):
+def add_alert_data(alert_id, teacher, measures, sanitaeter):
     alert = session.query(Alarmierungen).filter_by(id=alert_id).first()
     alert.teacher = teacher
     alert.measures = measures
+    alert.medic = sanitaeter
     session.commit()
 
 def add_accsess_key(firstname, lastname, key):
@@ -208,4 +209,10 @@ def check_accsess_premission(key):
         return True
     else:
         return False
+def get_key_name(key):
+    medic = session.query(Medics).filter_by(karten_nummer=key).first()
+    if medic is not None:
+        return medic.name, medic.last_name
+    else:
+        return None
 

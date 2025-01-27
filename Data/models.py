@@ -23,7 +23,11 @@ class Alarmierungen(Base):
     blood_suger = Column(Integer)
     pain = Column(Integer)  
     measures = Column(String(50))
-
+    abhol_maßnahme = Column(String(200))
+    parrents_notified_by = Column(String(50))
+    parrents_notified_at = Column(DateTime, default=datetime.datetime.now)
+    hospital = Column(String(90))
+    medic = Column(String(50))
 
     def __repr__(self):
         return f"<Alarmierungen(name='{self.name}', description='{self.symptom}')>"

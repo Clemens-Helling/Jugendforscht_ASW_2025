@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from Alert.alarm import alarm
 from tkinter import messagebox
-from Data.database import search_alerts, get_all_active_alerts, add_health_data, add_alert_data, check_accsess_premission
+from Data.database import search_alerts, get_all_active_alerts, add_health_data, add_alert_data, check_accsess_premission, get_key_name
 from assets.widgets import AlarmWidget
 from rfid import RFIDReader
 class AlarmApp(tk.Tk):
@@ -20,7 +20,8 @@ class AlarmApp(tk.Tk):
         # Stelle sicher, dass der Container den gesamten Platz ausfüllt
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
-        
+
+        self.__class__.logged_in_sanitaeter = " "
         # Frames speichern
         self.frames = {}
         
@@ -106,6 +107,7 @@ class LoginPage(tk.Frame):
             messagebox.showinfo("Info", "Karte erkannt")
         if check_accsess_premission(self.uuid):
             self.controller.show_frame(target_site)
+            AlarmApp.logged_in_sanitaeter = get_key_name(self.uuid)
         else:
             self.show_error("Karte nicht erkannt")
     def set_target_site(self, target_site):
@@ -122,42 +124,46 @@ class StartPage(tk.Frame):
         content_frame = tk.Frame(self)
         content_frame.grid(row=0, column=0, sticky="nsew")
         
-        label = tk.Label(content_frame, text="Datenerfassung",font=("Arial", 24))
-        label.place(relx = 0.5, rely= 0.1, anchor="center") 
+        self.label = tk.Label(content_frame, text="Datenerfassung",font=("Arial", 24))
+        self.label.place(relx = 0.5, rely= 0.1, anchor="center")
         
-        button = tk.Button(content_frame, text="Menu", 
+        self.button = tk.Button(content_frame, text="Menu",
                            command=lambda: controller.show_frame("MenuPage"))
-        button.place(relx = 0.1, rely= 0.1, anchor="center")
+        self.button.place(relx = 0.1, rely= 0.1, anchor="center")
 
-        lb_label = tk.Label(content_frame, text="Lernbegleiter")
-        lb_label.place(relx = 0.5, rely= 0.2, anchor="center")
+        self.name_label = tk.Label(content_frame, text=self.controller.logged_in_sanitaeter)
 
-        lb_entry = tk.Entry(content_frame)
-        lb_entry.place(relx = 0.5, rely= 0.25, anchor="center")
+        self.lb_label = tk.Label(content_frame, text="Lernbegleiter")
+        self.lb_label.place(relx = 0.5, rely= 0.2, anchor="center")
 
-        maßnahme_label = tk.Label(content_frame, text="Maßnahme")
-        maßnahme_label.place(relx = 0.5, rely= 0.4, anchor="center")
+        self.lb_entry = tk.Entry(content_frame)
+        self.lb_entry.place(relx = 0.5, rely= 0.25, anchor="center")
 
-        maßnahme_entry = tk.Entry(content_frame)
-        maßnahme_entry.place(relx = 0.5, rely= 0.45, anchor="center")
+        self.maßnahme_label = tk.Label(content_frame, text="Maßnahme")
+        self. maßnahme_label.place(relx = 0.5, rely= 0.4, anchor="center")
 
-        health_data_button = tk.Button(content_frame, text="Gesundheitsdaten erfassen", command = self.take_health_data)
-        health_data_button.place(relx = 0.3, rely= 0.6, anchor="center")
+        self.maßnahme_entry = tk.Entry(content_frame)
+        self.maßnahme_entry.place(relx = 0.5, rely= 0.45, anchor="center")
 
-        send_button = tk.Button(content_frame, text="Protokoll senden", command = lambda: add_alert_data(alert_id= self.controller.aktueller_einsatz ,teacher=lb_entry.get(), measures=maßnahme_entry.get()))
-        send_button.place(relx = 0.5, rely= 0.6, anchor="center")
+        self.health_data_button = tk.Button(content_frame, text="Gesundheitsdaten erfassen", command = self.take_health_data)
+        self.health_data_button.place(relx = 0.3, rely= 0.6, anchor="center")
 
-        send_to_operations_maneger_button = tk.Button(content_frame, text="An Einsatzleitung senden",)
-        send_to_operations_maneger_button.place(relx = 0.7, rely= 0.6, anchor="center")
+        self.send_button = tk.Button(content_frame, text="Protokoll senden", command = lambda: add_alert_data(alert_id= self.controller.aktueller_einsatz ,teacher=self.lb_entry.get(), measures=self.maßnahme_entry.get()))
+        self.send_button.place(relx = 0.5, rely= 0.6, anchor="center")
 
-        close_alert_button = tk.Button(content_frame, text="Einsatz beenden",)
-        close_alert_button.place(relx = 0.5, rely= 0.7, anchor="center")
+        self.send_to_operations_maneger_button = tk.Button(content_frame, text="An Einsatzleitung senden",)
+        self.send_to_operations_maneger_button.place(relx = 0.7, rely= 0.6, anchor="center")
+
+        self.close_alert_button = tk.Button(content_frame, text="Einsatz beenden",)
+        self.close_alert_button.place(relx = 0.5, rely= 0.7, anchor="center")
 
     def take_health_data(self):
         """Nimmt die Gesundheitsdaten auf und speichert sie in der Datenbank."""
         self.controller.set_login_target_site("HealthDataPage")
         self.controller.show_frame("LoginPage")
-        
+    def save_data(self):
+        """Speichert die Daten in der Datenbank."""
+        add_alert_data(alert_id= self.controller.aktueller_einsatz ,teacher= self.lb_entry.get(), measures=self.maßnahme_entry.get(), sanitaeter= self.controller.logged_in_sanitaeter)
 
 # Dritte Seite
 class MenuPage(tk.Frame):
