@@ -1,4 +1,5 @@
 import Data.database as database
+import requests
 error =""
 def alarm(symtom, name, last_name):
     """Löst einen Alarm aus, wenn ein Symptom ausgewählt wurde und fügt den Alarm zur Datenbank hinzu.
@@ -18,4 +19,5 @@ def alarm(symtom, name, last_name):
     else: 
         print("Alarm wurde ausgelöst")
         database.add_alarm(name, last_name, symtom)
-       
+        requests.post("https://ntfy.sh/Rfaond6DyhQPMo8P",
+                      data=symtom.encode(encoding='utf-8'))
