@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from Alert.alarm import alarm
 from tkinter import messagebox
-from Data.database import search_alerts, get_all_active_alerts, add_health_data, add_alert_data, check_accsess_premission, get_key_name
+from Data.database import search_alerts, get_all_active_alerts, add_health_data, add_alert_data, check_accsess_premission, get_key_name, set_alert_status
 from assets.widgets import AlarmWidget
 from rfid import RFIDReader
 class AlarmApp(tk.Tk):
@@ -48,6 +48,8 @@ class AlarmApp(tk.Tk):
     def show_frame(self, page_name: str):
         '''Zeigt den Frame für die gegebene Seite'''
         frame = self.frames[page_name]
+        if page_name == "AlertsPage":
+            frame.load_alerts()
         frame.tkraise()
     
 
@@ -108,6 +110,7 @@ class LoginPage(tk.Frame):
         if check_accsess_premission(self.uuid):
             self.controller.show_frame(target_site)
             AlarmApp.logged_in_sanitaeter = get_key_name(self.uuid)
+            messagebox.showinfo("Info", AlarmApp.logged_in_sanitaeter)
         else:
             self.show_error("Karte nicht erkannt")
     def set_target_site(self, target_site):
@@ -148,23 +151,35 @@ class StartPage(tk.Frame):
         self.health_data_button = tk.Button(content_frame, text="Gesundheitsdaten erfassen", command = self.take_health_data)
         self.health_data_button.place(relx = 0.3, rely= 0.6, anchor="center")
 
-        self.send_button = tk.Button(content_frame, text="Protokoll senden", command = lambda: add_alert_data(alert_id= self.controller.aktueller_einsatz ,teacher=self.lb_entry.get(), measures=self.maßnahme_entry.get()))
-        self.send_button.place(relx = 0.5, rely= 0.6, anchor="center")
+
 
         self.send_to_operations_maneger_button = tk.Button(content_frame, text="An Einsatzleitung senden",)
         self.send_to_operations_maneger_button.place(relx = 0.7, rely= 0.6, anchor="center")
 
-        self.close_alert_button = tk.Button(content_frame, text="Einsatz beenden",)
+        self.close_alert_button = tk.Button(content_frame, text="Einsatz beenden", command= self.close_allert)
         self.close_alert_button.place(relx = 0.5, rely= 0.7, anchor="center")
+
+        self.send_button = tk.Button(content_frame, text="Protokoll senden", command= lambda : self.save_data(self.controller.aktueller_einsatz, self.lb_entry.get(), self.maßnahme_entry.get(), self.controller.logged_in_sanitaeter))
+        self.send_button.place(relx=0.5, rely=0.6, anchor="center")
 
     def take_health_data(self):
         """Nimmt die Gesundheitsdaten auf und speichert sie in der Datenbank."""
         self.controller.set_login_target_site("HealthDataPage")
         self.controller.show_frame("LoginPage")
-    def save_data(self):
-        """Speichert die Daten in der Datenbank."""
-        add_alert_data(alert_id= self.controller.aktueller_einsatz ,teacher= self.lb_entry.get(), measures=self.maßnahme_entry.get(), sanitaeter= self.controller.logged_in_sanitaeter)
 
+    def save_data(self, medic_id, teacher, measures, sanitaeter):
+        """Speichert die Daten in der Datenbank."""
+        try:
+            add_alert_data(alert_id=medic_id, teacher=teacher, measures=measures, sanitaeter=sanitaeter)
+            messagebox.showinfo("Erfolg", "Daten erfolgreich gespeichert")
+        except Exception as e:
+            messagebox.showerror(title="Fehler", message=f"Fehler beim Speichern der Daten: {e}")
+
+    def close_allert(self):
+        """Schließt den Alarm und setzt den Status auf 'behandelt'."""
+        set_alert_status(alert_id= self.controller.aktueller_einsatz, status="behandelt")
+        self.controller.show_frame("AlertsPage")
+        self.controller.aktueller_einsatz = ""
 # Dritte Seite
 class MenuPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -192,30 +207,32 @@ class AlertsPage(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
-        
+
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
-        content_frame = tk.Frame(self)
-        content_frame.grid(row=0, column=0, sticky="nsew")
-        
-        alerts_frame = tk.Frame(content_frame )
-        alerts_frame.place(relx=0.5, rely=0.5, anchor="center", relwidth=0.8, relheight=0.8)
+        self.content_frame = tk.Frame(self)
+        self.content_frame.grid(row=0, column=0, sticky="nsew")
 
-        label = tk.Label(content_frame, text="Alarme", font=("Arial", 24))
+        self.alerts_frame = tk.Frame(self.content_frame)
+        self.alerts_frame.place(relx=0.5, rely=0.5, anchor="center", relwidth=0.8, relheight=0.8)
+
+        label = tk.Label(self.content_frame, text="Alarme", font=("Arial", 24))
         label.place(relx=0.5, rely=0.1, anchor="center")
+
+    def load_alerts(self):
+        for widget in self.alerts_frame.winfo_children():
+            widget.destroy()
 
         alerts = get_all_active_alerts()
 
         for i, alert in enumerate(alerts):
-            widget = AlarmWidget( parent= alerts_frame, controller=controller , alarm_name=alert["name"],  alarm_id= alert["id"])
+            widget = AlarmWidget(parent=self.alerts_frame, controller=self.controller, alarm_name=alert["name"], alarm_id=alert["id"])
             row = i // 3
             col = i % 3
             relx = col * 0.33 + 0.05  # 0.33 relative Breite pro Widget + 0.05 relativer Abstand
             rely = row * 0.33 + 0.05  # 0.33 relative Höhe pro Widget + 0.05 relativer Abstand
             widget.place(relx=relx, rely=rely, relwidth=0.28, relheight=0.28)  # Platzieren Sie das Widget mit relativen Koordinaten
-              # Platzieren Sie das Widget mit relativen Koordinaten
-        """Übernimmt den Alarm und setzt den Status auf 'behandelt'."""
 
 class HealthDataPage(tk.Frame):
     def __init__ (self, parent, controller):

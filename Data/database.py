@@ -6,8 +6,8 @@ import datetime
 from Data import crypto
 
 
-engine = create_engine('mysql+pymysql://root:Flecki2022#@localhost:3306/notifyer')
- 
+engine = create_engine('mysql+pymysql://sani_base:qEkfan-korcy9-kaswyt@notifyerbase:3306/Notifyer')
+
 Session = sessionmaker(bind=engine)
 session = Session()
 Base.metadata.create_all(engine)
@@ -185,13 +185,24 @@ def add_health_data(alert_id, pulse, spo2, blood_pressure, temperature, blood_su
     alert.pain = pain
     
     session.commit()
+def set_alert_status(alert_id, status):
+    alert = session.query(Alarmierungen).filter_by(id=alert_id).first()
+    alert.status = status
+    session.commit()
 
 def add_alert_data(alert_id, teacher, measures, sanitaeter):
-    alert = session.query(Alarmierungen).filter_by(id=alert_id).first()
-    alert.teacher = teacher
-    alert.measures = measures
-    alert.medic = sanitaeter
-    session.commit()
+    alerts = session.query(Alarmierungen).filter_by(id=alert_id).all()
+    print(f"Gefundene Alarme: {alerts}")
+    if len(alerts) > 1:
+        print("❗ Fehler: Mehrere Alarme mit derselben ID gefunden!")
+    alert = alerts[0] if alerts else None
+    if alert:
+        alert.teacher = teacher
+        alert.measures = measures
+        alert.medic = sanitaeter
+        session.commit()
+    else:
+        print(f"⚠️ Kein Alarm mit ID {alert_id} gefunden.")
 
 def add_accsess_key(firstname, lastname, key):
     medic = session.query(Medics).filter_by(name=firstname, last_name=lastname).first()
@@ -212,7 +223,16 @@ def check_accsess_premission(key):
 def get_key_name(key):
     medic = session.query(Medics).filter_by(karten_nummer=key).first()
     if medic is not None:
-        return medic.name, medic.last_name
+        return f"{medic.name} {medic.last_name}"
     else:
         return None
 
+def add_user(name, last_name, lernbegleiter, premission):
+    user = Medics(name=name, last_name=last_name, lernbegleiter=lernbegleiter, premission=premission)
+    session.add(user)
+    session.commit()
+
+def delete_user(name, last_name):
+    user = session.query(Medics).filter_by(name=name, last_name=last_name).first()
+    session.delete(user)
+    session.commit()

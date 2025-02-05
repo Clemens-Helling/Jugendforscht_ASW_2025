@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from Alert.alarm import alarm
 from tkinter import messagebox
-from Data.database import search_alerts, add_accsess_key
+from Data.database import search_alerts, add_accsess_key, add_user, delete_user
 
 class AlarmApp(tk.Tk):
     def __init__(self):
@@ -340,11 +340,11 @@ class UserPage(tk.Frame):
         self.privilage_combobox.set("Berechtigung")
         self.privilage_combobox.place(relx = 0.5, rely= 0.5, anchor="center")
 
-        self.delete_accsess_button = tk.Button(content_frame, text="Benutzter entfernen", font=("Arial", 15), bg="red", fg="white")
-        self.delete_accsess_button.place(relx = 0.7, rely= 0.8, anchor="center")
+        self.delete_user_button = tk.Button(content_frame, text="Benutzter entfernen", font=("Arial", 15), bg="red", fg="white")
+        self.delete_user_button.place(relx = 0.7, rely= 0.8, anchor="center")
 
-        self.add_accsess_key_button = tk.Button(content_frame, text="Benutzter hinzufügen", font=("Arial", 15), bg="green", fg="white")
-        self.add_accsess_key_button.place(relx = 0.3, rely= 0.8, anchor="center")
+        self.add_user_button = tk.Button(content_frame, text="Benutzter hinzufügen", font=("Arial", 15), bg="green", fg="white", command=lambda: add_user(self.firstname_entry.get(), self.lastname_entry.get(), self.lb_entry.get(), self.privilage_combobox.get()))
+        self.add_user_button.place(relx = 0.3, rely= 0.8, anchor="center")
 
 
 
