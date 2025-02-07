@@ -6,7 +6,7 @@ import datetime
 from Data import crypto
 
 
-engine = create_engine('mysql+pymysql://sani_base:qEkfan-korcy9-kaswyt@notifyerbase:3306/Notifyer')
+engine = create_engine('mysql+pymysql://sani_base:qEkfan-korcy9-kaswyt@localhost:3306/Notifyer')
 
 Session = sessionmaker(bind=engine)
 session = Session()
@@ -114,9 +114,11 @@ def search_alerts(firstname, lastname):
         alerts_dict = []
         for alert in alerts:
             alert_data = {
+                "id": alert.id,
                 "name": decrypted_name,  # Entschlüsselter Name
                 "lastname": decrypted_lastname,  # Entschlüsselter Nachname
                 "symptom": alert.symptom,
+                "medic": alert.medic,
                 "timestamp": alert.Alarm_recieved  # Beispiel für ein weiteres Attribut
             }
             alerts_dict.append(alert_data)
@@ -204,8 +206,12 @@ def add_alert_data(alert_id, teacher, measures, sanitaeter):
     else:
         print(f"⚠️ Kein Alarm mit ID {alert_id} gefunden.")
 
-def add_accsess_key(firstname, lastname, key):
+def add_accsess_key(firstname, lastname, key, premission):
     medic = session.query(Medics).filter_by(name=firstname, last_name=lastname).first()
+    if not medic:
+        medic = Medics(name=firstname, last_name=lastname, premission=premission)
+        session.add(medic)
+        session.commit()
     medic.karten_nummer = key
     session.commit()
 
@@ -220,6 +226,12 @@ def check_accsess_premission(key):
         return True
     else:
         return False
+def check_premission(firstname, lastname):
+    medic = session.query(Medics).filter_by(name=firstname, last_name=lastname).first()
+    if medic is not None:
+        return medic.premission
+    else:
+        return None
 def get_key_name(key):
     medic = session.query(Medics).filter_by(karten_nummer=key).first()
     if medic is not None:
@@ -235,4 +247,12 @@ def add_user(name, last_name, lernbegleiter, premission):
 def delete_user(name, last_name):
     user = session.query(Medics).filter_by(name=name, last_name=last_name).first()
     session.delete(user)
+    session.commit()
+
+def add_el_data(alert_id, abhol_massnahme, parrents_notified_at, parrents_notified_by, hospital):
+    alert = session.query(Alarmierungen).filter_by(id=alert_id).first()
+    alert.parrents_notified_at = parrents_notified_at
+    alert.abhol_maßnahme = abhol_massnahme
+    alert.parrents_notified_by = parrents_notified_by
+    alert.hospital = hospital
     session.commit()

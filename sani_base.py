@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from Alert.alarm import alarm
 from tkinter import messagebox
-from Data.database import search_alerts, get_all_active_alerts, add_health_data, add_alert_data, check_accsess_premission, get_key_name, set_alert_status
+from Data.database import search_alerts, get_all_active_alerts, add_health_data, add_alert_data, check_accsess_premission, get_key_name, set_alert_status, check_premission
 from assets.widgets import AlarmWidget
 from rfid import RFIDReader
 class AlarmApp(tk.Tk):
@@ -108,6 +108,14 @@ class LoginPage(tk.Frame):
         if self.uuid:
             messagebox.showinfo("Info", "Karte erkannt")
         if check_accsess_premission(self.uuid):
+            if self.target_site == "HealthDataPage":
+                self.medic_firstname, self.medic_lastname  = get_key_name(self.uuid).split(" ")
+                if check_premission(self.medic_firstname, self.medic_lastname) == "Sani+":
+
+                    self.controller.show_frame(target_site)
+                else:
+                    self.show_error("Sie haben keine Berechtigung für diese Seite")
+                    return
             self.controller.show_frame(target_site)
             AlarmApp.logged_in_sanitaeter = get_key_name(self.uuid)
             messagebox.showinfo("Info", AlarmApp.logged_in_sanitaeter)
@@ -148,8 +156,11 @@ class StartPage(tk.Frame):
         self.maßnahme_entry = tk.Entry(content_frame)
         self.maßnahme_entry.place(relx = 0.5, rely= 0.45, anchor="center")
 
+        medic_firstname, medic_lastname = self.controller.logged_in_sanitaeter.split(" ")
         self.health_data_button = tk.Button(content_frame, text="Gesundheitsdaten erfassen", command = self.take_health_data)
         self.health_data_button.place(relx = 0.3, rely= 0.6, anchor="center")
+
+
 
 
 
@@ -202,7 +213,13 @@ class MenuPage(tk.Frame):
         button1 = tk.Button(content_frame, text="Alarme", 
                            command=lambda: controller.show_frame("AlertsPage"))
         button1.place(relx = 0.5, rely= 0.3, anchor="center")
-       
+
+        button2 = tk.Button(content_frame, text="Logout", command= self.logout)
+        button2.place(relx = 0.5, rely= 0.4, anchor="center")
+    def logout(self):
+        """Loggt den Benutzer aus."""
+        self.controller.set_login_target_site("AlertsPage")
+        self.controller.show_frame("LoginPage")
 class AlertsPage(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
@@ -217,8 +234,13 @@ class AlertsPage(tk.Frame):
         self.alerts_frame = tk.Frame(self.content_frame)
         self.alerts_frame.place(relx=0.5, rely=0.5, anchor="center", relwidth=0.8, relheight=0.8)
 
-        label = tk.Label(self.content_frame, text="Alarme", font=("Arial", 24))
-        label.place(relx=0.5, rely=0.1, anchor="center")
+        self.label = tk.Label(self.content_frame, text="Alarme", font=("Arial", 24))
+        self.label.place(relx=0.5, rely=0.1, anchor="center")
+
+        self.button = tk.Button(self.content_frame, text="Relaod",command= self.load_alerts)
+        self.button.place(relx=0.5, rely=0.9, anchor="center")
+
+
 
     def load_alerts(self):
         for widget in self.alerts_frame.winfo_children():

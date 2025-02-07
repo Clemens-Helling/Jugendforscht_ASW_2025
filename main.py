@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from Alert.alarm import alarm
 from tkinter import messagebox
-from Data.database import search_alerts, add_accsess_key, add_user, delete_user
+from Data.database import search_alerts, add_accsess_key, add_user, delete_user, add_el_data
 
 class AlarmApp(tk.Tk):
     def __init__(self):
@@ -22,7 +22,7 @@ class AlarmApp(tk.Tk):
         # Frames speichern
         self.frames = {}
         
-        for F in (StartPage, MenuPage, PageTwo, RFIDPage, UserPage):
+        for F in (StartPage, MenuPage, PageTwo, RFIDPage, UserPage, El_Page):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -211,6 +211,9 @@ class MenuPage(tk.Frame):
 
         button4 = tk.Button(content_frame, text="Benutzer", command=lambda: controller.show_frame("UserPage"))
         button4.place(relx = 0.5, rely= 0.5, anchor="center")
+
+        button5 = tk.Button(content_frame, text="EL Daten", command=lambda: controller.show_frame("El_Page"))
+        button5.place(relx = 0.5, rely= 0.6, anchor="center")
 # Dritte Seite
 class PageTwo(tk.Frame):
     def __init__(self, parent, controller):
@@ -247,7 +250,8 @@ class PageTwo(tk.Frame):
         search_button = tk.Button(content_frame, text="Suchen", command = self.load_data, font=("Arial", 20),  fg="black")
         search_button.place(relx = 0.3, rely= 0.4, anchor= "center")
 
-        self.tree = ttk.Treeview(self, columns=("name", "lastname", "symptom", "timestamp"), show='headings')
+        self.tree = ttk.Treeview(self, columns=("id","name", "lastname", "symptom", "timestamp"), show='headings')
+        self.tree.heading("id", text="ID")
         self.tree.heading("name", text="Name")
         self.tree.heading("lastname", text="Last Name")
         self.tree.heading("symptom", text="Symptom")
@@ -268,7 +272,7 @@ class PageTwo(tk.Frame):
         data = search_alerts(entry_value, entry1_value)
         if data:
             for item in data:
-                self.tree.insert("", tk.END, values=(item["name"], item["lastname"], item["symptom"], item["timestamp"]))
+                self.tree.insert("", tk.END, values=(item["id"],item["name"], item["lastname"], item["symptom"],item["medic"], item["timestamp"]))
         else:
             print("No data found")
 
@@ -345,6 +349,105 @@ class UserPage(tk.Frame):
 
         self.add_user_button = tk.Button(content_frame, text="Benutzter hinzufügen", font=("Arial", 15), bg="green", fg="white", command=lambda: add_user(self.firstname_entry.get(), self.lastname_entry.get(), self.lb_entry.get(), self.privilage_combobox.get()))
         self.add_user_button.place(relx = 0.3, rely= 0.8, anchor="center")
+
+
+
+class El_Page(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        content_frame = tk.Frame(self)
+        content_frame.grid(row=0, column=0, sticky="nsew")
+
+        self.menu_button = tk.Button(content_frame, text="Menu", command=lambda: controller.show_frame("MenuPage"))
+        self.menu_button.place(relx = 0.05, rely= 0.05, anchor="center")
+        self.label = tk.Label(content_frame, text="EL Daten", font=("Arial", 24))
+        self.label.place(relx = 0.5, rely= 0.1, anchor="center")
+
+        self.picked_up_checkbox_state = tk.BooleanVar()
+        self.picked_up_checkbox = ttk.Checkbutton(content_frame, text="Abgeholt", variable=self.picked_up_checkbox_state)
+        self.picked_up_checkbox.place(relx = 0.2, rely= 0.2, anchor="center")
+
+        self.alone_at_home_checkbox_state = tk.BooleanVar()
+        self.alone_at_home_checkbox = ttk.Checkbutton(content_frame, text="Alleine nach Hause", variable=self.alone_at_home_checkbox_state)
+        self.alone_at_home_checkbox.place(relx = 0.2, rely= 0.3, anchor="center")
+
+        self.taxi_checkbox_state = tk.BooleanVar()
+        self.taxi_checkbox = ttk.Checkbutton(content_frame, text="Taxi zum Arzt ins KH", variable=self.taxi_checkbox_state)
+        self.taxi_checkbox.place(relx = 0.2, rely= 0.4, anchor="center")
+
+        self.ambulance_checkbox_state = tk.BooleanVar()
+        self.ambulance_checkbox = ttk.Checkbutton(content_frame, text="Rettungsdienst", variable=self.ambulance_checkbox_state)
+        self.ambulance_checkbox.place(relx = 0.2, rely= 0.5, anchor="center")
+
+        self.hospital_checkbox_state = tk.BooleanVar()
+        self.hospital_checkbox = ttk.Checkbutton(content_frame, text="Ins Krankenhaus", variable=self.hospital_checkbox_state)
+        self.hospital_checkbox.place(relx = 0.2, rely= 0.6, anchor="center")
+
+        self.notified_at_label = ttk.Label(content_frame, text="Eltern benachrichtigt um:")
+        self.notified_at_label.place(relx = 0.5, rely= 0.7, anchor="center")
+
+        self.notified_at_entry = ttk.Entry(content_frame)
+        self.notified_at_entry.place(relx = 0.5, rely= 0.75, anchor="center")
+
+        self.notified_by_label = ttk.Label(content_frame, text="Benachrichtigt durch:")
+        self.notified_by_label.place(relx = 0.5, rely= 0.8, anchor="center")
+
+        self.notified_by_entry = ttk.Entry(content_frame)
+        self.notified_by_entry.place(relx = 0.5, rely= 0.85, anchor="center")
+
+        self.alert_id_label = ttk.Label(content_frame, text="Alarm ID:")
+        self.alert_id_label.place(relx = 0.5, rely= 0.9, anchor="center")
+
+        self.alert_id_entry = ttk.Entry(content_frame)
+        self.alert_id_entry.place(relx = 0.5, rely= 0.95, anchor="center")
+
+        self.begleitperson_label = ttk.Label(content_frame, text="Begleitperson:")
+        self.begleitperson_label.place(relx = 0.5, rely= 0.35, anchor="center")
+
+        self.begleitperson_entry = ttk.Entry(content_frame)
+        self.begleitperson_entry.place(relx = 0.5, rely= 0.4,  anchor="center")
+
+        self.destination_label = ttk.Label(content_frame, text="Ziel:")
+        self.destination_label.place(relx = 0.7, rely= 0.35, anchor="center")
+
+        self.destination_entry = ttk.Entry(content_frame)
+        self.destination_entry.place(relx = 0.7, rely= 0.4, anchor="center")
+
+        self.hospital_label = ttk.Label(content_frame, text="Krankenhaus:")
+        self.hospital_label.place(relx = 0.5, rely= 0.55, anchor="center")
+
+        self.hospital_entry = ttk.Entry(content_frame)
+        self.hospital_entry.place(relx = 0.5, rely= 0.6, anchor="center")
+
+        self.submit_button = tk.Button(content_frame, text="Daten speichern", font=("Arial", 20), bg="green", fg="white", command=self.submit)
+        self.submit_button.place(relx = 0.8, rely= 0.95, anchor="center")
+
+    def submit(self):
+        """Speichert die Daten in der Datenbank
+        """
+        abhol_massnahme = ""
+        if self.picked_up_checkbox_state.get():
+            abhol_massnahme = "Abgeholt"
+        elif self.alone_at_home_checkbox_state.get():
+            abhol_massnahme = "Alleine nach Hause"
+        elif self.taxi_checkbox_state.get():
+            abhol_massnahme = f"Taxi nach {self.destination_entry.get()} mit {self.begleitperson_entry.get()}"
+        elif self.ambulance_checkbox_state.get():
+            abhol_massnahme = "Rettungsdienst"
+        elif self.hospital_checkbox_state.get():
+            abhol_massnahme = f"Ins Krankenhaus {self.hospital_entry.get()}"
+        else:
+            messagebox.showerror(
+                "Fehler",
+                "Bitte wählen Sie eine Abholmaßnahme"
+            )
+            return
+        add_el_data(self.alert_id_entry.get(), abhol_massnahme, self.notified_at_entry.get(), self.notified_by_entry.get(), self.hospital_entry.get())
 
 
 
