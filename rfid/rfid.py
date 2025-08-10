@@ -1,6 +1,6 @@
+import RPi.GPIO as GPIO
 from mfrc522 import SimpleMFRC522
 
-import RPi.GPIO as GPIO
 
 class RFIDReader:
     def __init__(self):
@@ -27,7 +27,7 @@ class RFIDReader:
             print(f"An error occurred: {e}")
         finally:
             GPIO.cleanup()
-            
+
 
 if __name__ == "__main__":
     rfid_reader = RFIDReader()

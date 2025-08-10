@@ -1,5 +1,6 @@
 import tkinter as tk
 
+
 class MainApp(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -30,7 +31,7 @@ class MainApp(tk.Tk):
         self.show_frame("StartPage")
 
     def show_frame(self, page_name):
-        '''Zeige den Frame der angegebenen Seite an'''
+        """Zeige den Frame der angegebenen Seite an"""
         frame = self.frames[page_name]
         frame.tkraise()
 
@@ -40,15 +41,21 @@ class LoginPage(tk.Frame):
         super().__init__(parent)
         self.controller = controller
 
-        label = tk.Label(self, text="Startseite", font=('Helvetica', 18))
+        label = tk.Label(self, text="Startseite", font=("Helvetica", 18))
         label.pack(pady=10, padx=10)
 
-        button1 = tk.Button(self, text="Gehe zu Seite 1",
-                            command=lambda: controller.show_frame("PageOne"))
+        button1 = tk.Button(
+            self,
+            text="Gehe zu Seite 1",
+            command=lambda: controller.show_frame("PageOne"),
+        )
         button1.pack()
 
-        button2 = tk.Button(self, text="Gehe zu Seite 2",
-                            command=lambda: controller.show_frame("PageTwo"))
+        button2 = tk.Button(
+            self,
+            text="Gehe zu Seite 2",
+            command=lambda: controller.show_frame("PageTwo"),
+        )
         button2.pack()
 
 
@@ -57,11 +64,14 @@ class PageOne(tk.Frame):
         super().__init__(parent)
         self.controller = controller
 
-        label = tk.Label(self, text="Seite 1", font=('Helvetica', 18))
+        label = tk.Label(self, text="Seite 1", font=("Helvetica", 18))
         label.pack(pady=10, padx=10)
 
-        button = tk.Button(self, text="Zurück zur Startseite",
-                           command=lambda: controller.show_frame("StartPage"))
+        button = tk.Button(
+            self,
+            text="Zurück zur Startseite",
+            command=lambda: controller.show_frame("StartPage"),
+        )
         button.pack()
 
 
@@ -70,11 +80,14 @@ class PageTwo(tk.Frame):
         super().__init__(parent)
         self.controller = controller
 
-        label = tk.Label(self, text="Seite 2", font=('Helvetica', 18))
+        label = tk.Label(self, text="Seite 2", font=("Helvetica", 18))
         label.pack(pady=10, padx=10)
 
-        button = tk.Button(self, text="Zurück zur Startseite",
-                           command=lambda: controller.show_frame("StartPage"))
+        button = tk.Button(
+            self,
+            text="Zurück zur Startseite",
+            command=lambda: controller.show_frame("StartPage"),
+        )
         button.pack()
 
 

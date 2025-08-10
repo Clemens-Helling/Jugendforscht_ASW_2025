@@ -1,258 +1,88 @@
+import datetime
 import uuid
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from Data.models import Base, Alarmierungen, Pseudonymization, Medics
-import datetime
-from Data import crypto
 
 
-engine = create_engine('mysql+pymysql://sani_base:qEkfan-korcy9-kaswyt@localhost:3306/Notifyer')
+from Data.models import Base, Patient, Alarmierung, Teacher, User, Material, SaniProtokoll, Protokoll
+from Data.crypto import encrypt, decrypt
+engine = create_engine(
+    "mysql+pymysql://root:Flecki2022#@localhost:3306/sani_link"
+)
 
 Session = sessionmaker(bind=engine)
 session = Session()
 Base.metadata.create_all(engine)
 
-def add_alarm(name, lastname, symptom):
-    """Fügt einen Alarm zur Datenbank hinzu.
+def add_alert(symptom, alert_type):
+    alert = Alarmierung(
 
-    Parameters
-    ----------
-    name : str  
-        Der Name des Patienten.
-    lastname : str  
-        der Nachname des Patienten.
-    symptom : str
-        Das Symptom des Patienten.
-    """
-    unique_id = str(uuid.uuid4())
-    global pseudonym
-    if not is_uuid_in_pseudonymization(unique_id) and not is_name_in_pseudonymization(name):
-        encrypted_name = crypto.encrypt(name)
-        encrypted_last_name = crypto.encrypt(lastname)
-        entry = Pseudonymization(real_name=encrypted_name, real_last_name=encrypted_last_name, pseudonym=unique_id)
-        alarm = Alarmierungen(name=unique_id, lastname=unique_id, symptom=symptom, status= "aktive")
-        session.add(alarm)
-        session.add(entry)
-        session.commit()
-    else:
-        encrypted_name = crypto.encrypt(name)
-        print(encrypted_name)
-        
-        pseudonym = session.query(Pseudonymization).filter_by(real_name=encrypted_name).first().pseudonym
-        
-        print(pseudonym)
-        alarm = Alarmierungen(name=pseudonym, lastname=pseudonym, symptom=symptom, status= "aktive")
-        session.add(alarm)
-        session.commit()
+        symptom=symptom,
+        alert_type=alert_type,
+        alert_received=datetime.datetime.now()
+    )
 
-def is_name_in_pseudonymization(name):
-    """Überprüft, ob ein Name bereits in der Pseudonymisierungstabelle vorhanden ist.
+    session.add(alert)
 
-    Parameters
-    ----------
-    name : str
-        Name, der überprüft werden soll.
+    session.flush()
+    protokoll = Protokoll(
+        alert_id=alert.alert_id
+    )
+    print(alert.alert_id)
 
-    Returns
-    -------
-    str
-        Ergebnis der Überprüfung.
-    """
-    encrypted_name = crypto.encrypt(name)
-    result = session.query(Pseudonymization).filter_by(real_name=encrypted_name).first()
-    print(result)
-    return result is not None
-
-def is_uuid_in_pseudonymization(unique_id):
-    """Überprüft, ob ein Pseudonym bereits in der Pseudonymisierungstabelle vorhanden ist.
-
-    Parameters
-    ----------
-    unique_id : str
-        Das Pseudonym, das überprüft werden soll.
-
-    Returns
-    -------
-    _type_
-        das Ergebnis der Überprüfung.
-    """
-    result = session.query(Pseudonymization).filter_by(pseudonym=unique_id).first()
-    return result is not None
-
-def search_alerts(firstname, lastname):
-    """Sucht nach Alarmen in der Datenbank.
-
-    Parameters
-    ----------
-    firstname : str
-        Vorname des Patienten dessen Daten gesucht werden sollen.
-    lastname : str
-        Nachname des Patienten dessen Daten gesucht werden sollen.
-
-    Returns
-    -------
-    dict
-        Ein Dictionary mit den gefunden
-    """
-    encrypted_name = crypto.encrypt(firstname)
-    encrypted_lastname = crypto.encrypt(lastname)
-    
-    result = session.query(Pseudonymization).filter_by(real_name=encrypted_name, real_last_name=encrypted_lastname).first()
-    
-    if result is not None:
-        pseudonym = result.pseudonym
-        alerts = session.query(Alarmierungen).filter_by(name=pseudonym).all()
-        
-        # Entschlüsseln der Namen und Nachnamen
-        encrypted_name = result.real_name
-        decrypted_name = crypto.decrypt(encrypted_name)
-        
-        encrypted_lastname = result.real_last_name
-        decrypted_lastname = crypto.decrypt(encrypted_lastname)
-        
-        # Umwandlung der Abfrageergebnisse in ein Dictionary
-        alerts_dict = []
-        for alert in alerts:
-            alert_data = {
-                "id": alert.id,
-                "name": decrypted_name,  # Entschlüsselter Name
-                "lastname": decrypted_lastname,  # Entschlüsselter Nachname
-                "symptom": alert.symptom,
-                "medic": alert.medic,
-                "timestamp": alert.Alarm_recieved  # Beispiel für ein weiteres Attribut
-            }
-            alerts_dict.append(alert_data)
-        
-        print(alerts_dict)
-        return alerts_dict
-    else:
-        return None
-def find_real_name(pseudonym):
-    """Findet den echten Namen eines Patienten anhand seines Pseudonyms.
-
-
-    Parameters
-    ----------
-    pseudonym : str
-        Das Pseudonym des Patienten.
-
-    Returns
-    -------
-    str
-        Der echte Name des Patienten.
-    """
-    
-    result = session.query(Pseudonymization).filter_by(pseudonym=pseudonym).first()
-    if result is not None:
-        encrypted_name = result.real_name
-        decrypted_name = crypto.decrypt(encrypted_name)
-        return decrypted_name
-    else:
-        return None 
-    
-def find_real_lastname(pseudonym):
-    result = session.query(Pseudonymization).filter_by(pseudonym=pseudonym).first()
-    if result is not None:
-        encrypted_lastname = result.real_last_name
-        decrypted_lastname = crypto.decrypt(encrypted_lastname)
-        return decrypted_lastname
-    else:
-        return None
-
-def get_all_active_alerts():
-    alerts = session.query(Alarmierungen).filter_by(status="aktive").all()
-    alerts_dict = []
-    for alert in alerts:
-        name = find_real_name(alert.name)
-        last_name = find_real_lastname(alert.lastname)
-        allert_data = {
-            "id": alert.id,
-            "name": name,
-            "lastname": last_name,
-            "symptom": alert.symptom,
-            "timestamp": alert.Alarm_recieved
-        }
-        alerts_dict.append(allert_data)
-        print(alerts_dict)
-    return alerts_dict
-
-
-def add_health_data(alert_id, pulse, spo2, blood_pressure, temperature, blood_suger, pain):
-    alert = session.query(Alarmierungen).filter_by(id=alert_id).first()
-    alert.pulse = pulse
-    alert.spo2 = spo2
-    alert.blood_pressure = blood_pressure
-    alert.temperature = temperature
-    alert.blood_suger = blood_suger
-    alert.pain = pain
-    
+    session.add(protokoll)
     session.commit()
-def set_alert_status(alert_id, status):
-    alert = session.query(Alarmierungen).filter_by(id=alert_id).first()
-    alert.status = status
-    session.commit()
+    return alert.alert_id
 
-def add_alert_data(alert_id, teacher, measures, sanitaeter):
-    alerts = session.query(Alarmierungen).filter_by(id=alert_id).all()
-    print(f"Gefundene Alarme: {alerts}")
-    if len(alerts) > 1:
-        print("❗ Fehler: Mehrere Alarme mit derselben ID gefunden!")
-    alert = alerts[0] if alerts else None
-    if alert:
-        alert.teacher = teacher
-        alert.measures = measures
-        alert.medic = sanitaeter
-        session.commit()
-    else:
-        print(f"⚠️ Kein Alarm mit ID {alert_id} gefunden.")
+def generate_unique_pseudonym():
+    while True:
+        new_uuid = str(uuid.uuid4())
+        if not is_uuid_in_patient(new_uuid):
+            return new_uuid
+# Überprüft, ob ein Patient mit den gleichen Daten existiert
+def is_name_in_patient(real_name, real_last_name, birth_day=None):
+    enc_name = encrypt(real_name)
+    enc_last_name = encrypt(real_last_name)
+    print("enc_name:", enc_name)
+    print("enc_last_name:", enc_last_name)
+    print("birth_day:", birth_day)
 
-def add_accsess_key(firstname, lastname, key, premission):
-    medic = session.query(Medics).filter_by(name=firstname, last_name=lastname).first()
-    if not medic:
-        medic = Medics(name=firstname, last_name=lastname, premission=premission)
-        session.add(medic)
-        session.commit()
-    medic.karten_nummer = key
-    session.commit()
-
-def delete_accsess_key(firstname, lastname):
-    medic = session.query(Medics).filter_by(name=firstname, last_name=lastname).first()
-    medic.karten_nummer = None
-    session.commit()
-
-def check_accsess_premission(key):
-    medic = session.query(Medics).filter_by(karten_nummer=key).first()
-    if medic is not None:
+    # Alle Patienten abrufen
+    patient = session.query(Patient).filter_by(birth_day=birth_day, real_last_name=enc_last_name, real_name=enc_name).first()
+    if patient:
+        return patient
+def is_uuid_in_patient(pseudonym):
+    patient = session.query(Patient).filter_by(pseudonym=pseudonym).first()
+    if patient:
         return True
+def add_patient(real_name, real_last_name, birth_day, alert_id):
+    protokoll = session.query(Protokoll).filter_by(alert_id=alert_id).first()
+    print("Gefundenes protokoll ")
+    patient = is_name_in_patient(real_name, real_last_name, birth_day)
+    if patient:
+        print("Patient mit diesen Daten existiert bereits.")
+        if protokoll:
+            protokoll.pseudonym = patient.pseudonym
+            session.commit()
+        else:
+            print("Kein Protokoll mit dieser alert_id gefunden!")
+        return
     else:
-        return False
-def check_premission(firstname, lastname):
-    medic = session.query(Medics).filter_by(name=firstname, last_name=lastname).first()
-    if medic is not None:
-        return medic.premission
-    else:
-        return None
-def get_key_name(key):
-    medic = session.query(Medics).filter_by(karten_nummer=key).first()
-    if medic is not None:
-        return f"{medic.name} {medic.last_name}"
-    else:
-        return None
+        enc_name = encrypt(real_name)
+        enc_last_name = encrypt(real_last_name)
+        patient = Patient(
+            pseudonym=generate_unique_pseudonym(),
+            real_name=enc_name,
+            real_last_name=enc_last_name,
+            birth_day=birth_day
+        )
+        session.add(patient)
+        session.flush()
+        if protokoll:
+            protokoll.pseudonym = patient.pseudonym
+            session.commit()
+        else:
+            print("Kein Protokoll mit dieser alert_id gefunden!")
 
-def add_user(name, last_name, lernbegleiter, premission):
-    user = Medics(name=name, last_name=last_name, lernbegleiter=lernbegleiter, premission=premission)
-    session.add(user)
-    session.commit()
-
-def delete_user(name, last_name):
-    user = session.query(Medics).filter_by(name=name, last_name=last_name).first()
-    session.delete(user)
-    session.commit()
-
-def add_el_data(alert_id, abhol_massnahme, parrents_notified_at, parrents_notified_by, hospital):
-    alert = session.query(Alarmierungen).filter_by(id=alert_id).first()
-    alert.parrents_notified_at = parrents_notified_at
-    alert.abhol_maßnahme = abhol_massnahme
-    alert.parrents_notified_by = parrents_notified_by
-    alert.hospital = hospital
-    session.commit()
+add_patient(real_name="Vincent", real_last_name="Helling", birth_day=datetime.datetime.strptime("2020-05-01 00:00:00", "%Y-%m-%d %H:%M:%S"), alert_id=add_alert(symptom="Bauchweh", alert_type="erkrankung"))
