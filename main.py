@@ -1,16 +1,12 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from darkdetect import theme
 import ttkbootstrap as ttkb
+from darkdetect import theme
+
 from Alert.alarm import alarm
-from Data.database import (
-    add_accsess_key,
-    add_el_data,
-    add_user,
-    delete_user,
-    search_alerts,
-)
+from Data.database import (add_accsess_key, add_el_data, add_user, delete_user,
+                           search_alerts)
 
 
 class AlarmApp(tk.Tk):

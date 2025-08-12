@@ -353,10 +353,9 @@ class PageTwo(tk.Frame):
         self.tree.column("medic", width=100)
         self.tree.column("timestamp", width=150)
 
-
         y_scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.tree.yview)
-        self.tree.configure( yscrollcommand=y_scrollbar.set)
-       
+        self.tree.configure(yscrollcommand=y_scrollbar.set)
+
         y_scrollbar.place(relx=0.9, rely=0.7, anchor="center", relheight=0.3)
         self.tree.place(
             relx=0.5, rely=0.7, anchor="center", relwidth=0.8, relheight=0.3
