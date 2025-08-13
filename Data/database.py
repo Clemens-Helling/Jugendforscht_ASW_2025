@@ -160,13 +160,38 @@ def add_sani1(card_number, alert_id):
         sani1=sani.User_ID,
         protokoll_id=protokoll.protokoll_id
     )
-    protokoll.medic_id = sani_protokoll.sani_protokoll_id
+
 
     session.add(sani_protokoll)
+    session.flush()
+    protokoll.medic_id = sani_protokoll.sani_protokoll_id
     session.commit()
     print(f"Sani 1 ({sani.name} {sani.last_name}) zum Protokoll {protokoll.protokoll_id} hinzugefügt.")
+
+def add_sani2(card_number, alert_id):
+    sani = session.query(User).filter_by(karten_nummer=card_number).first()
+
+    if not sani:
+        print(f"Kein Benutzer mit Karten­nummer {card_number} gefunden.")
+        return
+
+    protokoll = session.query(Protokoll).filter_by(alert_id=alert_id).first()
+    if not protokoll:
+        print(f"Kein Protokoll mit alert_id {alert_id} gefunden.")
+        return
+
+    sani_protokoll = session.query(SaniProtokoll).filter_by(protokoll_id=protokoll.protokoll_id).first()
+    if not sani_protokoll:
+        print(f"Kein SaniProtokoll für Protokoll {protokoll.protokoll_id} gefunden.")
+        return
+    sani_protokoll.sani2 = sani.User_ID
+    session.commit()
+
+    print(f"Sani 2 ({sani.name} {sani.last_name}) zum Protokoll {protokoll.protokoll_id} hinzugefügt.")
+
+
 if __name__ == "__main__":
-    add_sani1("1234567890", 27)
+    add_sani2("1234567890", 27)
 
 # add_user(name="Max",last_name="Mustermann",lernbegleiter="1",kartennummer="1234567890",permission="admin",)
 # add_patient(real_name="Vincent", real_last_name="Helling", birth_day=datetime.datetime.strptime("2020-05-01 00:00:00", "%Y-%m-%d %H:%M:%S"), alert_id=add_alert(symptom="Bauchweh", alert_type="erkrankung"))
