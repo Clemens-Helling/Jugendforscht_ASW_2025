@@ -1,7 +1,14 @@
 import datetime
 from sqlalchemy import (
-    BLOB, Column, DateTime, Float, ForeignKey, Integer,
-    String, Text, create_engine
+    BLOB,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    create_engine,
 )
 from sqlalchemy.orm import declarative_base, relationship
 
@@ -71,19 +78,22 @@ class ProtokollMaterials(Base):
     material = relationship("Material", back_populates="protokoll_materials")
 
 
-
 class SaniProtokoll(Base):
     __tablename__ = "sani_protokoll"
     sani_protokoll_id = Column(Integer, primary_key=True, autoincrement=True)
     sani1 = Column(Integer, ForeignKey("users.User_ID"))
     sani2 = Column(Integer, ForeignKey("users.User_ID"))
     operationsmanager = Column(Integer, ForeignKey("users.User_ID"))
-    protokoll_id = Column(Integer, ForeignKey("protokolle.protokoll_id"), unique=True)  # <-- Hinzugefügt
+    protokoll_id = Column(
+        Integer, ForeignKey("protokolle.protokoll_id"), unique=True
+    )  # <-- Hinzugefügt
 
     sani1_fk = relationship("User", foreign_keys=[sani1])
     sani2_fk = relationship("User", foreign_keys=[sani2])
     operationsmanager_fk = relationship("User", foreign_keys=[operationsmanager])
     protokoll = relationship("Protokoll", back_populates="sani_protokoll")
+
+
 class Protokoll(Base):
     __tablename__ = "protokolle"
     protokoll_id = Column(Integer, primary_key=True, autoincrement=True)
@@ -111,9 +121,13 @@ class Protokoll(Base):
     teacher = relationship("Teacher", back_populates="protokolle")
     medic = relationship("User", foreign_keys=[medic_id])
     protokoll_materials = relationship("ProtokollMaterials", back_populates="protokoll")
-    sani_protokoll = relationship("SaniProtokoll", back_populates="protokoll", uselist=False)
+    sani_protokoll = relationship(
+        "SaniProtokoll", back_populates="protokoll", uselist=False
+    )
 
 
 if __name__ == "__main__":
-    engine = create_engine("mysql+mysqlconnector://user:password@localhost/deine_datenbank", echo=True)
+    engine = create_engine(
+        "mysql+mysqlconnector://user:password@localhost/deine_datenbank", echo=True
+    )
     Base.metadata.create_all(engine)

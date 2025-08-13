@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 from Alert.alarm import alarm
-from Data.database import add_accsess_key, add_el_data, search_alerts
+from Data.setup_database import add_accsess_key, add_el_data, search_alerts
 from rfid.rfid import RFIDReader
 
 

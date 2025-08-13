@@ -1,6 +1,6 @@
 import requests
 
-import Data.database as database
+import Data.setup_database as database
 
 error = ""
 

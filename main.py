@@ -5,8 +5,13 @@ import ttkbootstrap as ttkb
 from darkdetect import theme
 
 from Alert.alarm import alarm
-from Data.database import (add_accsess_key, add_el_data, add_user, delete_user,
-                           search_alerts)
+from Data.setup_database import (
+    add_accsess_key,
+    add_el_data,
+    add_user,
+    delete_user,
+    search_alerts,
+)
 
 
 class AlarmApp(tk.Tk):
@@ -15,7 +20,7 @@ class AlarmApp(tk.Tk):
 
         self.title("Notifyer Base")
         self.geometry("800x600")
-        self.style =ttkb.Style(theme="cosmo")b
+        self.style = ttkb.Style(theme="cosmo")
         self.style.configure("Large.TButton", font=("Arial", 18))
 
         # Container für die Seiten (Frames)
@@ -107,7 +112,6 @@ class StartPage(tk.Frame):
                 "Anaphilaktischer Schock",
             ],
             bootstyle="primary",
-
         )
         self.symptoms.set("Wählen Sie eine Krankheit")
         self.symptoms.place(relx=0.5, rely=0.4, anchor="center")
@@ -165,18 +169,20 @@ class StartPage(tk.Frame):
             content_frame,
             text="Alarmieren",
             command=self.get_alarm,
-            padding=(40,20),
+            padding=(40, 20),
             bootstyle="danger",
         )
         alert_button.place(relx=0.5, rely=0.65, anchor="center")
 
         reset_button = ttk.Button(
-            content_frame, text="Reset", command=self.clear_entries, padding=(40,20),
-            bootstyle= "warning",
-            style="Large.TButton"
-
+            content_frame,
+            text="Reset",
+            command=self.clear_entries,
+            padding=(40, 20),
+            bootstyle="warning",
+            style="Large.TButton",
         )
-        reset_button.place(relx=0.7, rely=0.65,  anchor="center")
+        reset_button.place(relx=0.7, rely=0.65, anchor="center")
 
     def toggle_textfield(self):
         """zeigt bei bedarf das Textfeld an oder versteckt es wieder"""
@@ -228,26 +234,6 @@ class StartPage(tk.Frame):
         """
         messagebox.showerror("Fehler", message)
         # Abstand nach oben
-
-    def get_alarm(self):
-        """Sendet den Alar, speichert die Daten und zeigt eine Erfolgsmeldung an"""
-        print("Alarmieren")
-        # Debugging-Ausgabe
-        erkankung = self.symptoms.get()
-        name = self.first_name_insert.get()
-        last_name = self.last_name_insert.get()
-        if self.unclear_situation_checkbox_state.get():
-            erkankung = "Unklare Lage"
-
-        elif self.other_checkbox_state.get():
-            erkankung = self.other_entry.get()
-        stripped_name = name.replace(" ", "")
-        stripped_last_name = last_name.replace(" ", "")
-        result = alarm(erkankung, stripped_name, stripped_last_name)
-        messagebox.showinfo("Alarm", "Alarm wurde gesendet")
-        if result == "keine Krankheit ausgewählt":
-            print("Fehler: Keine Krankheit ausgewählt")  # Debugging-Ausgabe
-            self.show_error("Bitte wählen Sie eine Krankheit")
 
     def clear_entries(self):
         """Löscht die Eingaben in den Entry-Widgets"""
@@ -372,7 +358,9 @@ class PageTwo(tk.Frame):
 
         x_scrollbar = ttk.Scrollbar(self, orient="horizontal", command=self.tree.xview)
         y_scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.tree.yview)
-        self.tree.configure(xscrollcommand=x_scrollbar.set, yscrollcommand=y_scrollbar.set)
+        self.tree.configure(
+            xscrollcommand=x_scrollbar.set, yscrollcommand=y_scrollbar.set
+        )
         x_scrollbar.place(relx=0.5, rely=0.85, anchor="center", relwidth=0.8)
         y_scrollbar.place(relx=0.9, rely=0.7, anchor="center", relheight=0.3)
         self.tree.place(
@@ -405,6 +393,8 @@ class PageTwo(tk.Frame):
                 )
         else:
             print("No data found")
+
+
 class RFIDPage(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)

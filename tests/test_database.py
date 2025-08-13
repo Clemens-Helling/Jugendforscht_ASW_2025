@@ -3,10 +3,23 @@ from unittest import mock
 
 import pytest
 
-from Data.database import (add_alert, add_patient, generate_unique_pseudonym,
-                           is_name_in_patient, is_uuid_in_patient)
-from Data.models import (Alarmierung, Base, Material, Patient, Protokoll,
-                         SaniProtokoll, Teacher, User)
+from Data.setup_database import (
+    add_alert,
+    add_patient,
+    generate_unique_pseudonym,
+    is_name_in_patient,
+    is_uuid_in_patient,
+)
+from Data.models import (
+    Alarmierung,
+    Base,
+    Material,
+    Patient,
+    Protokoll,
+    SaniProtokoll,
+    Teacher,
+    User,
+)
 
 
 @mock.patch("Data.database.session")
