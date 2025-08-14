@@ -15,9 +15,6 @@ def generate_unique_pseudonym():
 def is_name_in_patient(real_name, real_last_name, birth_day=None):
     enc_name = encrypt(real_name)
     enc_last_name = encrypt(real_last_name)
-    print("enc_name:", enc_name)
-    print("enc_last_name:", enc_last_name)
-    print("birth_day:", birth_day)
 
     # Alle Patienten abrufen
     patient = (

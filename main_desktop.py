@@ -1,6 +1,10 @@
 import ttkbootstrap as tb
+from ttkbootstrap import DateEntry
 from ttkbootstrap.constants import *
 import tkinter.font as tkFont
+from Alert import alarm
+from Data import patient_crud, alerts_crud
+
 
 
 class PlaceholderEntry(tb.Entry):
@@ -120,11 +124,20 @@ class AlertPage(tb.Frame):
         last_name_entry = PlaceholderEntry(self, "Nachname")
         last_name_entry.pack(pady=10)
 
+        self.birth_entry = DateEntry(self )
+
+        self.birth_entry.pack(pady=10)
+
         symptom_combobox = tb.Combobox(
             self, values=["Symptom 1", "Symptom 2", "Symptom 3"]
         )
         symptom_combobox.set("Symptome")
         symptom_combobox.pack(pady=10)
+
+        alert_type_combobox = tb.Combobox(
+            self, values=["Unfall", "Erkrankung", "Sonstiges"])
+        alert_type_combobox.set("Alarmtyp")
+        alert_type_combobox.pack(pady=10)
 
         style = tb.Style()
         style.configure(
@@ -135,10 +148,37 @@ class AlertPage(tb.Frame):
             foreground="#FFFFFF",
             borderwidth=0,
         )
-
-        tb.Button(self, text="Alarmieren", style="Custom.TButton", width=10).pack(
+        self.alert_without_name_var = tb.BooleanVar()
+        alert_without_name = tb.Checkbutton(
+            self,
+            text="Alarm ohne Name",
+            variable=self.alert_without_name_var
+        )
+        alert_without_name.pack(pady=10)
+        tb.Button(self, text="Alarmieren", style="Custom.TButton", width=10, command=self.on_alarm_button_click).pack(
             pady=10
         )
+
+    def on_alarm_button_click(self):
+        name = self.children['!placeholderentry'].get()
+        last_name = self.children['!placeholderentry2'].get()
+        birthday = self.birth_entry.entry.get()
+        symptom = self.children['!combobox'].get()
+        alert_type = self.children['!combobox2'].get()
+        is_alert_without_name = self.alert_without_name_var.get()
+
+        if symptom == "Symptome" or alert_type == "Alarmtyp":
+            print("Bitte wählen Sie ein Symptom und einen Alarmtyp aus.")
+            return
+
+        if is_alert_without_name:
+            alert_id = alarm.add_alert(symptom, alert_type)
+            print("Alarm ohne Name ausgelöst.")
+        else:
+            alert_id = alarm.add_alert(symptom, alert_type)
+            print(f"Alert ID in  {alert_id}")
+            patient_crud.add_patient(name, last_name, birthday, alert_id)
+            print(f"Alarm ausgelöst für {name} {last_name} mit Symptom: {symptom} und Alarmtyp: {alert_type}")
 
 
 class AboutPage(tb.Frame):
@@ -186,5 +226,4 @@ class AboutPage(tb.Frame):
 if __name__ == "__main__":
 
     app = App()
-    print(tkFont.families())
     app.mainloop()

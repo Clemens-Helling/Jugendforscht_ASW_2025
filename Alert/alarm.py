@@ -1,11 +1,10 @@
 import requests
-
-import Data.setup_database as database
+import Data.alerts_crud as database
 
 error = ""
 
 
-def alarm(symtom, name, last_name):
+def add_alert(symtom, alert_type):
     """Löst einen Alarm aus, wenn ein Symptom ausgewählt wurde und fügt den Alarm zur Datenbank hinzu.
 
     Parameters
@@ -22,7 +21,9 @@ def alarm(symtom, name, last_name):
         return "keine Krankheit ausgewählt"
     else:
         print("Alarm wurde ausgelöst")
-        database.add_alarm(name, last_name, symtom)
+        alert_id = database.add_alert(symtom, alert_type )
+        print(f"Alert ID in alarm {alert_id}")
         requests.post(
             "https://ntfy.sh/Rfaond6DyhQPMo8P", data=symtom.encode(encoding="utf-8")
-        )
+               )
+        return alert_id

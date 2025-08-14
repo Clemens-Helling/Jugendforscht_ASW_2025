@@ -1,5 +1,5 @@
-from setup_database import session
-from models import Alarmierung, Protokoll
+from Data.setup_database import session
+from Data.models import Alarmierung, Protokoll
 import datetime
 
 
@@ -11,12 +11,13 @@ def add_alert(symptom, alert_type):
     session.add(alert)
 
     session.flush()
+    alert_id = alert.alert_id
     protokoll = Protokoll(alert_id=alert.alert_id)
     print(alert.alert_id)
 
     session.add(protokoll)
     session.commit()
-    return alert.alert_id
+    return alert_id
 
 
 def get_alerts():
