@@ -1,8 +1,11 @@
 from Data.setup_database import session
 from Data.models import Alarmierung, Protokoll
-import datetime
+from datetime import datetime, UTC
+import pytz
 
-
+utc_time = datetime.now(UTC)
+local_time = utc_time.astimezone(pytz.timezone('Europe/Berlin'))
+print(local_time)
 def add_alert(symptom, alert_type):
     alert = Alarmierung(
         symptom=symptom, alert_type=alert_type, alert_received=datetime.datetime.now()

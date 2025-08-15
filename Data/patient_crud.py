@@ -3,6 +3,8 @@ from Data.models import Patient, Protokoll
 from Data.setup_database import session
 import uuid
 
+def clean_name(name):
+    return name.replace(" ", "").lower()
 
 def generate_unique_pseudonym():
     while True:
@@ -13,8 +15,8 @@ def generate_unique_pseudonym():
 
 # Überprüft, ob ein Patient mit den gleichen Daten existiert
 def is_name_in_patient(real_name, real_last_name, birth_day=None):
-    enc_name = encrypt(real_name)
-    enc_last_name = encrypt(real_last_name)
+    enc_name = encrypt(clean_name(real_name))
+    enc_last_name = encrypt(clean_name(real_last_name))
 
     # Alle Patienten abrufen
     patient = (
@@ -26,6 +28,7 @@ def is_name_in_patient(real_name, real_last_name, birth_day=None):
     )
     if patient:
         return patient
+
 
 
 def is_uuid_in_patient(pseudonym):
@@ -47,8 +50,8 @@ def add_patient(real_name, real_last_name, birth_day, alert_id):
             print("Kein Protokoll mit dieser alert_id gefunden!")
         return
     else:
-        enc_name = encrypt(real_name)
-        enc_last_name = encrypt(real_last_name)
+        enc_name = encrypt(clean_name(real_name))
+        enc_last_name = encrypt(clean_name(real_last_name))
         patient = Patient(
             pseudonym=generate_unique_pseudonym(),
             real_name=enc_name,
@@ -80,5 +83,11 @@ def get_patient_by_pseudonym(pseudonym):
         print("Kein Patient mit diesem Pseudonym gefunden.")
         return None
 
-
-add_patient("Kerstin", "Helling", "1978-10-15", 27)
+def get_pseudonym_by_name(real_name, real_last_name, birth_day):
+    """Gibt das Pseudonym eines Patienten anhand seines Namens und Geburtsdatums zurück."""
+    patient = is_name_in_patient(real_name, real_last_name, birth_day)
+    if patient:
+        return patient.pseudonym
+    else:
+        print("Kein Patient mit diesen Daten gefunden.")
+        return None
