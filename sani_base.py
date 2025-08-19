@@ -3,16 +3,10 @@ from tkinter import messagebox, ttk
 
 from Alert.alarm import alarm
 from assets.widgets import AlarmWidget
-from Data.setup_database import (
-    add_alert_data,
-    add_health_data,
-    check_accsess_premission,
-    check_premission,
-    get_all_active_alerts,
-    get_key_name,
-    search_alerts,
-    set_alert_status,
-)
+from Data.database import (add_alert_data, add_health_data,
+                           check_accsess_premission, check_premission,
+                           get_all_active_alerts, get_key_name, search_alerts,
+                           set_alert_status)
 from rfid import RFIDReader
 
 
