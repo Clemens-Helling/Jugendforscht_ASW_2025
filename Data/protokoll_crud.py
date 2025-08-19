@@ -1,5 +1,5 @@
-from setup_database import session
-from models import Protokoll, Patient
+from Data.setup_database import session
+from Data.models import Protokoll, Patient
 from Data.patient_crud import get_pseudonym_by_name
 import datetime
 
@@ -90,6 +90,8 @@ def get_protokolls_by_name(first_name, last_name, birth_day):
         {
             "alert_id": protokoll.alert_id,
             "status": protokoll.status,
+            "pseudonym": protokoll.pseudonym,
+
 
             "operation_end": protokoll.operation_end,
             "teacher_id": protokoll.teacher_id,

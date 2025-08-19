@@ -3,7 +3,8 @@ from ttkbootstrap import DateEntry
 from ttkbootstrap.constants import *
 import tkinter.font as tkFont
 from Alert import alarm
-from Data import patient_crud, alerts_crud
+from Data import patient_crud, alerts_crud, protokoll_crud
+import datetime
 
 
 
@@ -93,7 +94,7 @@ class App(tb.Window):
         self.frames = {}
 
         # Seiten initialisieren und in dict speichern
-        for F in (AlertPage, AboutPage):
+        for F in (AlertPage, AboutPage, DetailPage):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -162,7 +163,7 @@ class AlertPage(tb.Frame):
     def on_alarm_button_click(self):
         name = self.children['!placeholderentry'].get()
         last_name = self.children['!placeholderentry2'].get()
-        birthday = self.birth_entry.entry.get()
+        birthday = datetime.datetime.strptime(self.birth_entry.entry.get(), "%d.%m.%Y").strftime("%d.%m.%Y")
         symptom = self.children['!combobox'].get()
         alert_type = self.children['!combobox2'].get()
         is_alert_without_name = self.alert_without_name_var.get()
@@ -192,18 +193,20 @@ class AboutPage(tb.Frame):
         search_name_entry.focus()
         search_last_name_entry = PlaceholderEntry(self, "Nachname")
         search_last_name_entry.pack(pady=10)
-        tb.Button(self, text="Suchen", style="Custom.TButton", width=10).pack(pady=10)
+        self.search_birthdate_entry = DateEntry(self)
+        self.search_birthdate_entry.pack(pady=10)
+
+        tb.Button(self, text="Suchen", style="Custom.TButton", width=10, command=self.search_alerts).pack(pady=10)
 
         self.result_table = tb.Treeview(
-            self, columns=("Name", "Nachname", "Symptome"), show="headings"
+            self, columns=("Name", "Nachname", "operation_end"), show="headings"
         )
         self.result_table.heading("Name", text="Name")
         self.result_table.heading("Nachname", text="Nachname")
-        self.result_table.heading("Symptome", text="Symptome")
+
+        self.result_table.heading("operation_end", text="Einsatzende")
         self.result_table.pack(pady=10)
-        self.result_table.insert("", "end", values=("Max", "Mustermann", "Symptom 1"))
-        self.result_table.insert("", "end", values=("Erika", "Mustermann", "Symptom 2"))
-        self.result_table.insert("", "end", values=("Hans", "Mustermann", "Symptom 3"))
+
 
         # Scrollbar hinzufügen
         scrollbar = tb.Scrollbar(
@@ -214,14 +217,64 @@ class AboutPage(tb.Frame):
         self.result_table.pack(side="left", fill="both", expand=True)
         self.result_table.bind("<ButtonRelease-1>", self.on_row_click)
 
-    def on_row_click(self, event):
-        # Ermittelt die ID der angeklickten Zeile
-        item_id = self.result_table.identify_row(event.y)
-        if item_id:
-            # Holt die Werte der angeklickten Zeile
-            values = self.result_table.item(item_id, "values")
-            print(f"Angeklickte Zeile: {values}")
 
+        self.protokoll_data_by_item = {}  # Mapping von Treeview-Item-ID zu Protokoll-Daten
+
+    def search_alerts(self):
+        for item in self.result_table.get_children():
+            self.result_table.delete(item)
+        self.protokoll_data_by_item.clear()
+        first_name = self.children['!placeholderentry'].get()
+        last_name = self.children['!placeholderentry2'].get().strip()
+        birth_date = datetime.datetime.strptime(self.search_birthdate_entry.entry.get(), "%d.%m.%Y").strftime("%d.%m.%Y")
+        print(f"Suche nach Protokollen für: {first_name} {last_name}, Geburtsdatum: {birth_date}")
+        if not first_name or not last_name or not birth_date:
+            print("Bitte füllen Sie alle Felder aus.")
+            return
+        protokolls = protokoll_crud.get_protokolls_by_name(
+            first_name, last_name, birth_date
+        )
+        if not protokolls:
+            print("Keine Protokolle gefunden.")
+            return
+        else:
+            for protokoll in protokolls:
+                item_id = self.result_table.insert(
+                    "", "end",
+                    values=(
+                        patient_crud.get_patient_by_pseudonym(protokoll["pseudonym"])["real_name"],
+                        patient_crud.get_patient_by_pseudonym(protokoll["pseudonym"])["real_last_name"],
+                        protokoll["operation_end"]
+                    )
+                )
+                self.protokoll_data_by_item[item_id] = protokoll
+
+    def on_row_click(self, event):
+        item_id = self.result_table.identify_row(event.y)
+        if item_id and item_id in self.protokoll_data_by_item:
+            protokoll = self.protokoll_data_by_item[item_id]
+            self.controller.show_frame("DetailPage")
+            detail_page = self.controller.frames["DetailPage"]
+            detail_page.show_details(protokoll)
+
+
+class DetailPage(tb.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        tb.Label(self, text="Protokolldetails", font=("Exo 2 ExtraBold", 16)).pack(pady=20)
+        self.detail_label = tb.Label(self, text="Details werden hier angezeigt")
+        self.detail_label.pack(pady=10)
+        self.back_button = tb.Button(self, text="Back", command=self.show_back)
+        self.back_button.pack(pady=10)
+
+    def show_details(self, protokoll):
+        # Zeige alle Infos an, z.B. als Text
+        details = "\n".join(f"{k}: {v}" for k, v in protokoll.items())
+        self.detail_label.config(text=details)
+    def show_back(self):
+
+        self.back_button.config(command=lambda: self.controller.show_frame("AboutPage"))
 
 if __name__ == "__main__":
 

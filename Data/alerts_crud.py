@@ -8,7 +8,7 @@ local_time = utc_time.astimezone(pytz.timezone('Europe/Berlin'))
 print(local_time)
 def add_alert(symptom, alert_type):
     alert = Alarmierung(
-        symptom=symptom, alert_type=alert_type, alert_received=datetime.datetime.now()
+        symptom=symptom, alert_type=alert_type, alert_received=datetime.now()
     )
 
     session.add(alert)

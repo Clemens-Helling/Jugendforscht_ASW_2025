@@ -91,3 +91,4 @@ def get_pseudonym_by_name(real_name, real_last_name, birth_day):
     else:
         print("Kein Patient mit diesen Daten gefunden.")
         return None
+print(get_pseudonym_by_name("Clemens", "Helling", "17.12.2010"))
