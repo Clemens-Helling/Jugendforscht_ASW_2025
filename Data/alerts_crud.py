@@ -35,3 +35,22 @@ def get_alerts():
         }
         for alert in alerts
     ]
+
+
+def get_all_active_alerts():
+    """Gibt alle aktiven Alarmierungen zurück, bei denen operation_end leer ist."""
+    protokolls = session.query(Protokoll).filter(Protokoll.operation_end == None).all()
+
+    active_alerts = []
+
+    for protokoll in protokolls:
+        alert = session.query(Alarmierung).filter(Alarmierung.alert_id == protokoll.alert_id).first()
+        if alert:
+            active_alerts.append({
+                "id": alert.alert_id,
+                "alert_received": alert.alert_received,
+                "alert_type": alert.alert_type,
+                "symptom": alert.symptom,
+            })
+
+    return active_alerts

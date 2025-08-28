@@ -1,5 +1,5 @@
-from setup_database import session
-from models import User, SaniProtokoll, Protokoll, Teacher
+from Data.setup_database import session
+from Data.models import User, SaniProtokoll, Protokoll, Teacher
 import datetime
 
 
@@ -76,3 +76,9 @@ def add_teacher(first_name, last_name, house):
     session.add(teacher)
     session.commit()
     print(f"Lehrer {first_name} {last_name} hinzugefügt.")
+
+def get_all_teachers():
+    """Gibt alle Lehrer zurück."""
+    teachers = session.query(Teacher).all()
+    return [f"{l.first_name} {l.last_name}" for l in teachers]
+
