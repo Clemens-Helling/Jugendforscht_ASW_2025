@@ -332,6 +332,19 @@ class ProtokollPage(tb.Frame):
         self.controller.show_frame("HealthDataPage")
 
     def save_protokoll(self):
+        teacher_name = self.teacher_combobox.get()
+        measure = self.measure_combobox.get()
+        split_result = teacher_name.split(" ", 1)
+        first_name = split_result[0]
+        last_name = split_result[1] if len(split_result) > 1 else ""
+        teacher = users_crud.get_teacher_by_name(first_name, last_name)
+        if teacher:
+            teacher_id = teacher["teacher_id"]
+            protokoll_crud.add_teacher_to_protokoll(self.controller.alert_id, teacher_id)
+        else:
+            print("Lehrer nicht gefunden.")
+        print(f"Kommt an {measure}")
+        protokoll_crud.add_measure_to_protokoll(self.controller.alert_id, measure)
         print("Protokoll gespeichert")
         self.controller.show_frame("MaterialPage")
 
@@ -357,6 +370,11 @@ class RegisterPatientPage(tb.Frame):
         tb.Button(self, text="Patient registrieren", style="Custom.TButton", width=20, command=self.register_patient).pack(pady=10)
 
     def register_patient(self):
+        first_name = self.children['!placeholderentry'].get()
+        last_name = self.children['!placeholderentry2'].get()
+        birthday = datetime.datetime.strptime(self.birth_entry.entry.get(), "%d.%m.%Y").strftime("%d.%m.%Y")
+
+        patient_crud.add_patient(first_name, last_name, birthday, self.controller.alert_id)
         self.controller.show_frame("ProtokollPage")
 
 class MaterialPage(tb.Frame):
@@ -377,6 +395,8 @@ class MaterialPage(tb.Frame):
         material_treeview.heading("Menge", text="Menge")
         material_treeview.pack(fill=BOTH, expand=True, padx=20, pady=20)
 
+    def ad
+
 
 
 
@@ -385,16 +405,36 @@ class HealthDataPage(tb.Frame):
         super().__init__(parent)
         self.controller = controller
         tb.Label(self, text="Gesundheitsdaten", font=("Exo 2 ExtraBold", 16)).pack(pady=20)
-        PlaceholderEntry(self, "Körpertemperatur (°C)").pack(pady=10)
-        PlaceholderEntry(self, "Blutdruck (mmHg)").pack(pady=10)
-        PlaceholderEntry(self, "Herzfrequenz (BPM)").pack(pady=10)
-        PlaceholderEntry(self, "Blutzucker").pack(pady=10)
-        PlaceholderEntry(self, "Sauerstoffsättigung (%)").pack(pady=10)
-        PlaceholderEntry(self, "Schmerzen 1-10").pack(pady=10)
+        temperature_entry = PlaceholderEntry(self, "Körpertemperatur (°C)").pack(pady=10)
+        blood_presure_entry = PlaceholderEntry(self, "Blutdruck (mmHg)").pack(pady=10)
+        heart_rate_entry = PlaceholderEntry(self, "Herzfrequenz (BPM)").pack(pady=10)
+        blood_sugar_entry = PlaceholderEntry(self, "Blutzucker").pack(pady=10)
+        spo2_entry = PlaceholderEntry(self, "Sauerstoffsättigung (%)").pack(pady=10)
+        pain_entry = PlaceholderEntry(self, "Schmerzen 1-10").pack(pady=10)
         tb.Button(self, text="Daten speichern", style="Custom.TButton", width=20, command=self.save_health_data).pack(pady=10)
+
+    def get_entry_value(self, entry, placeholder):
+        value = entry.get()
+        return None if value == placeholder else value
 
     def save_health_data(self):
         print("Gesundheitsdaten gespeichert")
+        pulse = self.get_entry_value(self.children['!placeholderentry3'], "Herzfrequenz (BPM)")
+        spo2 = self.get_entry_value(self.children['!placeholderentry5'], "Sauerstoffsättigung (%)")
+        blood_pressure = self.get_entry_value(self.children['!placeholderentry2'], "Blutdruck (mmHg)")
+        temperature = self.get_entry_value(self.children['!placeholderentry'], "Körpertemperatur (°C)")
+        blood_sugar = self.get_entry_value(self.children['!placeholderentry4'], "Blutzucker")
+        pain = self.get_entry_value(self.children['!placeholderentry6'], "Schmerzen 1-10")
+
+        protokoll_crud.add_health_data_to_protokoll(
+            self.controller.alert_id,
+            pulse,
+            spo2,
+            blood_pressure,
+            temperature,
+            blood_sugar,
+            pain
+        )
         self.controller.show_frame("ProtokollPage")
 
 
@@ -463,6 +503,7 @@ class AlarmWidget(tb.Frame):
             self.controller.show_frame("RegisterPatientPage")
         else:
             self.controller.show_frame("ProtokollPage")
+        self.controller.alert_id = self.alert_id
         return "accepted"
 
     def get_color_from_style(self, style_name):

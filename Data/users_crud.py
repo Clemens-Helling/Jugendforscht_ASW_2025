@@ -82,3 +82,16 @@ def get_all_teachers():
     teachers = session.query(Teacher).all()
     return [f"{l.first_name} {l.last_name}" for l in teachers]
 
+def get_teacher_by_name(first_name, last_name):
+    """Gibt einen Lehrer anhand seines Namens zurück."""
+    teacher = session.query(Teacher).filter_by(first_name=first_name, last_name=last_name).first()
+    if teacher:
+        return {
+            "teacher_id": teacher.teacher_id,
+            "first_name": teacher.first_name,
+            "last_name": teacher.last_name,
+            "house": teacher.house,
+        }
+    else:
+        print(f"Kein Lehrer mit dem Namen {first_name} {last_name} gefunden.")
+        return None

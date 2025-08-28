@@ -23,6 +23,17 @@ def add_teacher_to_protokoll(alert_id, teacher_id):
     protokoll.teacher_id = teacher_id
     session.commit()
     print(f"Lehrer {teacher_id} zum Protokoll {alert_id} hinzugefügt.")
+def add_measure_to_protokoll(alert_id, measure):
+    """Fügt eine Maßnahme zu einem Protokoll hinzu."""
+    protokoll = session.query(Protokoll).filter_by(alert_id=alert_id).first()
+    if not protokoll:
+        print(f"Kein Protokoll mit alert_id {alert_id} gefunden.")
+        return
+
+    protokoll.measures = measure
+    session.commit()
+    print(f"Maßnahme zum Protokoll {alert_id} hinzugefügt.")
+    print(f"Maßnahme gespeichert: {protokoll.measures}")
 
 
 def add_health_data_to_protokoll(alert_id, pulse, spo2, blood_pressure, temperature, bloood_sugar, pain_level ):
@@ -37,7 +48,7 @@ def add_health_data_to_protokoll(alert_id, pulse, spo2, blood_pressure, temperat
     protokoll.blood_pressure = blood_pressure
     protokoll.temperature = temperature
     protokoll.blood_sugar = bloood_sugar
-    protokoll.pain_level = pain_level
+    protokoll.pain = pain_level
     session.commit()
     print(f"Gesundheitsdaten zum Protokoll {alert_id} hinzugefügt.")
 
