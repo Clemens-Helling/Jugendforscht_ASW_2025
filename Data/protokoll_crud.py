@@ -108,4 +108,28 @@ def get_protokolls_by_name(first_name, last_name, birth_day):
         }
         for protokoll in protokolls
     ]
+def get_protokoll_by_alert_id(alert_id):
+    """Gibt ein Protokoll anhand der alert_id zurück."""
+    protokoll = session.query(Protokoll).filter_by(alert_id=alert_id).first()
+    if not protokoll:
+        print(f"Kein Protokoll mit alert_id {alert_id} gefunden.")
+        return None
+
+    return {
+        "alert_id": protokoll.alert_id,
+        "status": protokoll.status,
+        "pseudonym": protokoll.pseudonym,
+        "operation_end": protokoll.operation_end,
+        "teacher_id": protokoll.teacher_id,
+        "pulse": protokoll.pulse,
+        "spo2": protokoll.spo2,
+        "blood_pressure": protokoll.blood_pressure,
+        "temperature": protokoll.temperature,
+        "blood_sugar": protokoll.blood_sugar,
+        "pain_level": protokoll.pain,
+        "abhol_massnahme": protokoll.abhol_massnahme,
+        "parents_notified_by": protokoll.parents_notified_by,
+        "parents_notified_at": protokoll.parents_notified_at,
+        "hospital": protokoll.hospital
+    }
 print(get_protokolls_by_name("Clemens", "Helling", "17.12.2010"))

@@ -2,6 +2,7 @@ import ttkbootstrap as tb
 from ttkbootstrap import DateEntry
 from ttkbootstrap.constants import *
 import tkinter.font as tkFont
+import tkinter.messagebox as mbox
 from Alert import alarm
 from Data import patient_crud, alerts_crud, protokoll_crud, users_crud
 import datetime
@@ -112,7 +113,7 @@ class App(tb.Window):
         self.frames = {}
 
         # Seiten initialisieren und in dict speichern
-        for F in (AlertPage, LoginPage, AlertsPage, ProtokollPage, RegisterPatientPage, HealthDataPage):
+        for F in (AlertPage, LoginPage, AlertsPage, ProtokollPage, RegisterPatientPage, HealthDataPage, MaterialPage):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -187,7 +188,7 @@ class AlertPage(tb.Frame):
     def on_alarm_button_click(self):
         name = self.children['!placeholderentry'].get()
         last_name = self.children['!placeholderentry2'].get()
-        birthday = datetime.datetime.strptime(self.birth_entry.entry.get(), "%d.%m.%Y").strftime("%d.%m.%Y")
+
         symptom = self.children['!combobox'].get()
         alert_type = self.children['!combobox2'].get()
         is_alert_without_name = self.alert_without_name_var.get()
@@ -198,8 +199,12 @@ class AlertPage(tb.Frame):
 
         if is_alert_without_name:
             alert_id = alarm.add_alert(symptom, alert_type)
+
+
+            protokoll_crud.update_status(alert_id, "ohne Name")
             print("Alarm ohne Name ausgelöst.")
         else:
+            birthday = datetime.datetime.strptime(self.birth_entry.entry.get(), "%d.%m.%Y").strftime("%d.%m.%Y")
             alert_id = alarm.add_alert(symptom, alert_type)
             print(f"Alert ID in  {alert_id}")
             patient_crud.add_patient(name, last_name, birthday, alert_id)
@@ -229,6 +234,7 @@ class LoginPage(tb.Frame):
             self.controller.is_logged_in = True
             self.controller.show_frame("AlertsPage")
         else:
+            mbox.showerror("Fehler", "Ungültige Anmeldedaten")
             print("Ungültige Anmeldedaten")
 
 
@@ -298,6 +304,8 @@ class AlertsPage(tb.Frame):
             # Widget platzieren mit kleinerer Größe
             widget.place(relx=relx, rely=rely, relwidth=0.23, relheight=0.23)
 
+
+
 class ProtokollPage(tb.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
@@ -316,11 +324,21 @@ class ProtokollPage(tb.Frame):
         )
         self.measure_combobox.set("Maßnahme")
         self.measure_combobox.pack(pady=10)
+        tb.Button(self, text="Sanitäter hinzufügen", bootstyle="danger", width=20, command=self.add_medic).pack(pady=10)
         tb.Button(self, text="Gesundheitsdaten",  width=20, bootstyle = "primary" ,command=self.add_health_data).pack(pady=10)
-        tb.Button(self, text="Protokoll speichern" , width=20, style="Custom.TButton").pack(pady=10)
+        tb.Button(self, text="Protokoll speichern" , width=20, style="Custom.TButton", command=self.save_protokoll).pack(pady=10)
 
     def add_health_data(self):
         self.controller.show_frame("HealthDataPage")
+
+    def save_protokoll(self):
+        print("Protokoll gespeichert")
+        self.controller.show_frame("MaterialPage")
+
+    def add_medic(self):
+        mbox.showinfo("Anmeldung", "Bitte Karte an das Lesegerät halten")
+        print("Sanitäter hinzugefügt")
+
 
 
 
@@ -340,6 +358,25 @@ class RegisterPatientPage(tb.Frame):
 
     def register_patient(self):
         self.controller.show_frame("ProtokollPage")
+
+class MaterialPage(tb.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        tb.Label(self, text="Material", font=("Exo 2 ExtraBold", 16)).pack(pady=20)
+        material_combobox = tb.Combobox(
+            self, values=["Material 1", "Material 2", "Material 3"]
+        )
+        material_combobox.set("Material")
+        material_combobox.pack(pady=10)
+        PlaceholderEntry(self, "Menge").pack(pady=10)
+        tb.Button(self, text="Material hinzufügen", bootstyle="danger", width=20).pack(pady=10)
+
+        material_treeview = tb.Treeview(self, columns=("Material", "Menge"), show="headings")
+        material_treeview.heading("Material", text="Material")
+        material_treeview.heading("Menge", text="Menge")
+        material_treeview.pack(fill=BOTH, expand=True, padx=20, pady=20)
+
 
 
 
@@ -421,7 +458,11 @@ class AlarmWidget(tb.Frame):
         """Alarm übernehmen und zur Startseite wechseln"""
         print(f"Alarm #{self.alert_id} übernommen")
         self.controller.aktueller_einsatz = self.alert_id
-        self.controller.show_frame("RegisterPatientPage")
+        protokoll = protokoll_crud.get_protokoll_by_alert_id(self.alert_id)
+        if protokoll["status"] == "ohne Name":
+            self.controller.show_frame("RegisterPatientPage")
+        else:
+            self.controller.show_frame("ProtokollPage")
         return "accepted"
 
     def get_color_from_style(self, style_name):
