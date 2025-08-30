@@ -164,4 +164,12 @@ cython_debug/
 builds/
 iv.key
 key.key
-.idea/
+# PyCharm IDEA
+.idea/*
+!.idea/codeStyles
+!.idea/runConfigurations
+
+# Spezifisch ignorieren
+.idea/dataSources/
+.idea/dataSources.local.xml
+.idea/deployment.xml
