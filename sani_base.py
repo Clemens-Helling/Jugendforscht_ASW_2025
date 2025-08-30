@@ -7,6 +7,7 @@ from Alert import alarm
 from Data import patient_crud, alerts_crud, protokoll_crud, users_crud
 import datetime
 
+from Data.materials_crud import add_material_to_protokoll, get_all_material_names
 
 
 class PlaceholderEntry(tb.Entry):
@@ -381,21 +382,39 @@ class MaterialPage(tb.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
+        material_list= get_all_material_names()
         tb.Label(self, text="Material", font=("Exo 2 ExtraBold", 16)).pack(pady=20)
         material_combobox = tb.Combobox(
-            self, values=["Material 1", "Material 2", "Material 3"]
+            self, values= material_list
         )
         material_combobox.set("Material")
         material_combobox.pack(pady=10)
         PlaceholderEntry(self, "Menge").pack(pady=10)
-        tb.Button(self, text="Material hinzufügen", bootstyle="danger", width=20).pack(pady=10)
+        tb.Button(self, text="Material hinzufügen", bootstyle="danger", width=20,command= self.add_material).pack(pady=10)
+        tb.Button(self, text="Material speichern", bootstyle="danger", width=20, command=self.save_materials).pack(
+            pady=10)
 
-        material_treeview = tb.Treeview(self, columns=("Material", "Menge"), show="headings")
-        material_treeview.heading("Material", text="Material")
-        material_treeview.heading("Menge", text="Menge")
-        material_treeview.pack(fill=BOTH, expand=True, padx=20, pady=20)
+        self.material_treeview = tb.Treeview(self, columns=("Material", "Menge"), show="headings")
+        self.material_treeview.heading("Material", text="Material")
+        self.material_treeview.heading("Menge", text="Menge")
+        self.material_treeview.pack(fill=BOTH, expand=True, padx=20, pady=20)
 
-    def ad
+
+    def add_material(self):
+        material = self.children['!combobox'].get()
+        menge = self.children['!placeholderentry'].get()
+        if material == "Material" or not menge.isdigit():
+            print("Bitte gültiges Material und Menge eingeben.")
+            return
+        self.material_treeview.insert("", "end", values=(material, menge))
+
+    def save_materials(self):
+        for item in self.material_treeview.get_children():
+            material, menge = self.material_treeview.item(item, "values")
+            add_material_to_protokoll(self.controller.alert_id, material, int(menge))
+        print("Materialien gespeichert")
+        protokoll_crud.close_alert(self.controller.alert_id)
+        self.controller.show_frame("AlertsPage")
 
 
 

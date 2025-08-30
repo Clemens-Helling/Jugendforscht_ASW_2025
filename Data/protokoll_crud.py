@@ -1,5 +1,5 @@
 from Data.setup_database import session
-from Data.models import Protokoll, Patient
+from Data.models import Protokoll, Patient, Material, ProtokollMaterials
 from Data.patient_crud import get_pseudonym_by_name
 import datetime
 
@@ -76,6 +76,24 @@ def add_hospital_to_protokoll(alert_id, hospital_name,):
 
     session.commit()
     print(f"Krankenhaus {hospital_name} zum Protokoll {alert_id} hinzugefügt.")
+
+
+
+
+    material_entry = session.query(Material).filter_by(material_name=material).first()
+    if not material_entry:
+        print(f"Kein Material mit dem Namen {material} gefunden.")
+        return
+
+    protokoll_material = ProtokollMaterials(
+        protokoll_id=protokoll.protokoll_id,
+        material_id=material_entry.material_id,
+        quantity=quantity
+    )
+
+    session.add(protokoll_material)
+    session.commit()
+    print(f"Material {material} (Menge: {quantity}) zum Protokoll {alert_id} hinzugefügt.")
 
 def close_alert(alert_id):
     """Schließt einen Alarm."""

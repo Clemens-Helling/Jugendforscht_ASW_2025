@@ -1,5 +1,5 @@
-from setup_database import session
-from models import Material, ProtokollMaterials, Protokoll
+from Data.setup_database import session
+from Data.models import Material, ProtokollMaterials, Protokoll
 import datetime
 
 
@@ -60,16 +60,20 @@ def delete_material(material_id):
         print(f"Material mit ID {material_id} nicht gefunden.")
 
 
-def add_material_to_protokoll(protokoll_id, material_id, quantity):
+def add_material_to_protokoll(alert_id, material_name, quantity):
     """Fügt ein Material zu einem Protokoll hinzu."""
-
+    protokoll = session.query(Protokoll).filter_by(alert_id=alert_id).first()
+    material = session.query(Material).filter_by(material_name=material_name).first()
+    if not protokoll:
+        print(f"Kein Protokoll mit alert_id {alert_id} gefunden.")
+        return
     protokoll_material = ProtokollMaterials(
-        protokoll_id=protokoll_id, material_id=material_id, quantity=quantity
+        protokoll_id=protokoll.protokoll_id, material_id= material.material_id, quantity=quantity
     )
     session.add(protokoll_material)
     session.commit()
 
-    print(f"Material ID {material_id} zu Protokoll ID {protokoll_id} hinzugefügt.")
+    print(f"Material ID {material.material_id} zu Protokoll ID {protokoll.protokoll_id} hinzugefügt.")
 
 def get_materials_by_protokoll(protokoll_id):
     """Gibt alle Materialien eines Protokolls zurück."""
@@ -84,5 +88,8 @@ def get_materials_by_protokoll(protokoll_id):
         if mat:
             result.append({'name': mat.material_name, 'quantity': material.quantity})
     return result
-
+def get_all_material_names():
+    """Gibt alle Materialien zurück."""
+    materials = session.query(Material).all()
+    return [f"{m.material_name}" for m in materials]
 print(get_materials_by_protokoll(protokoll_id=23))
