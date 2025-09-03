@@ -5,6 +5,7 @@ import tkinter.font as tkFont
 from Alert import alarm
 from Data import patient_crud, alerts_crud, protokoll_crud
 import datetime
+from PDF.pdf import main
 
 
 
@@ -258,23 +259,44 @@ class AboutPage(tb.Frame):
             detail_page.show_details(protokoll)
 
 
+# python
 class DetailPage(tb.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
+        self.current_protokoll = None  # Attribut initialisieren
+
         tb.Label(self, text="Protokolldetails", font=("Exo 2 ExtraBold", 16)).pack(pady=20)
         self.detail_label = tb.Label(self, text="Details werden hier angezeigt")
         self.detail_label.pack(pady=10)
+        self.pdf_button = tb.Button(self, text="Als PDF speichern", command=self.save_as_pdf)
+        self.pdf_button.pack(pady=10)
         self.back_button = tb.Button(self, text="Back", command=self.show_back)
         self.back_button.pack(pady=10)
 
     def show_details(self, protokoll):
-        # Zeige alle Infos an, z.B. als Text
-        details = "\n".join(f"{k}: {v}" for k, v in protokoll.items())
+        # Protokoll merken (Kopie) und anzeigen
+        self.current_protokoll = dict(protokoll)
+        details = "\n".join(f"{k}: {v}" for k, v in self.current_protokoll.items())
         self.detail_label.config(text=details)
-    def show_back(self):
 
+    def show_back(self):
         self.back_button.config(command=lambda: self.controller.show_frame("AboutPage"))
+
+    def save_as_pdf(self):
+        if not self.current_protokoll:
+            print("Kein Protokoll geladen.")
+            return
+
+        alert_id = self.current_protokoll.get("alert_id")
+
+
+        if alert_id:
+            self.current_protokoll["alert_id"] = alert_id
+            main(alert_id)
+        else:
+            print("Warnung: Keine alert_id gefunden. PDF wird trotzdem mit vorhanden Daten erstellt.")
+
 
 if __name__ == "__main__":
 

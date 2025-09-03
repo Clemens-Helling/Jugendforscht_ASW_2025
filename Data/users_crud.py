@@ -1,6 +1,7 @@
 from Data.setup_database import session
 from Data.models import User, SaniProtokoll, Protokoll, Teacher
 import datetime
+import json
 
 
 def add_user(name, last_name, lernbegleiter, kartennummer, permission):
@@ -95,3 +96,49 @@ def get_teacher_by_name(first_name, last_name):
     else:
         print(f"Kein Lehrer mit dem Namen {first_name} {last_name} gefunden.")
         return None
+def transform_personal(mapping):
+    role_map = {
+        "sani1": ("Sani1", True),
+        "sani2": ("Sani2", False),
+        "operationsmanager": ("Einsatztleitung", False),
+        # weitere Keys hier hinzufügen wenn nötig
+    }
+
+    result = []
+    for key, name in mapping.items():
+        name_clean = name.strip()
+        funktion, needs_signature = role_map.get(key, (key, False))
+        entry = {"name": name_clean, "funktion": funktion}
+
+        result.append(entry)
+
+    return result
+
+def get_medic_names_by_alert_id(alert_id):
+    """Gibt die Namen der Sanis und des Operationsmanagers anhand der Alert-ID zurück."""
+    protokoll = session.query(Protokoll).filter_by(alert_id=alert_id).first()
+    if not protokoll:
+        print(f"Kein Protokoll mit alert_id {alert_id} gefunden.")
+        return None
+
+    sani_protokoll = (
+        session.query(SaniProtokoll)
+        .filter_by(protokoll_id=protokoll.protokoll_id)
+        .first()
+    )
+    if not sani_protokoll:
+        print(f"Kein SaniProtokoll für Protokoll {protokoll.protokoll_id} gefunden.")
+        return None
+
+    sani1 = session.query(User).filter_by(User_ID=sani_protokoll.sani1).first()
+    sani2 = session.query(User).filter_by(User_ID=sani_protokoll.sani2).first()
+    operationsmanager = session.query(User).filter_by(User_ID=sani_protokoll.operationsmanager).first()
+
+    inputData = {
+        "sani1": f"{sani1.name} {sani1.last_name}" if sani1 else None,
+        "sani2": f"{sani2.name} {sani2.last_name}" if sani2 else None,
+        "operationsmanager": f"{operationsmanager.name} {operationsmanager.last_name}" if operationsmanager else None,
+    }
+    personal_list = transform_personal(inputData)
+    return json.dumps(personal_list, ensure_ascii=False, indent=4)
+

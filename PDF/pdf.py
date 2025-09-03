@@ -15,6 +15,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib import colors
 from datetime import datetime
+from Data.protokoll_crud import prepare_pdf_data
 import os
 
 
@@ -341,12 +342,12 @@ def create_sample_data():
 
 
 
-def main():
+def main(alert_id=None):
     """Hauptfunktion zum Erstellen des Protokolls"""
     generator = EinsatzprotokollGenerator()
 
     # Beispieldaten laden
-    data = create_sample_data()
+    data = prepare_pdf_data(alert_id)
 
     # Erstelle das Protokoll mit Daten
     output_file = "einsatzprotokoll_2_seiten.pdf"
@@ -362,7 +363,7 @@ if __name__ == "__main__":
         import reportlab
 
         print("ReportLab gefunden, erstelle ausgefülltes Einsatzprotokoll...")
-        main()
+        main(60)
     except ImportError:
         print("ReportLab ist nicht installiert.")
         print("Installieren Sie es mit: pip install reportlab")
