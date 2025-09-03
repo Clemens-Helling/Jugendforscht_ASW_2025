@@ -161,15 +161,16 @@ class EinsatzprotokollGenerator:
         """Zeichnet die Formularfelder der zweiten Seite"""
         y_pos = self.height - 3.5 * cm
 
-        # Personal
+
         self.draw_section(c, "5. Personal", y_pos)
         y_pos -= 1 * cm
+
+        print("DEBUG: Daten für die Tabelle:", data.get("personal", []))
 
         # Tabelle für Personal
         self.draw_personnel_table(c, y_pos, data.get("personal", []))
         y_pos -= 6 * cm
 
-        # Einsatzverlauf (großes Textfeld)
 
 
     def draw_footer(self, c, page_number):
@@ -267,39 +268,55 @@ class EinsatzprotokollGenerator:
         c.setFont("Helvetica", 10)
         c.drawString(x_pos + 0.6 * cm, y_pos - 0.1 * cm, label)
 
+    # In deiner Klasse EinsatzprotokollGenerator
+
+    # In deiner Klasse EinsatzprotokollGenerator in PDF/pdf.py
+
     def draw_personnel_table(self, c, y_pos, personnel_data):
-        """Zeichnet eine Tabelle für Personal mit Daten"""
-        # Tabellenkopf
-        headers = ["Name", "Funktion"]
-        col_widths = [4 * cm, 3 * cm]
+        """
+        Zeichnet eine Tabelle für Personal mit Daten
+        Verbesserte Version mit ReportLab Table-Klasse und Fehlerbehebung
+        """
+        # 1. Tabellenkopf definieren
+        table_data = [["Name", "Funktion"]]
 
-        c.setFont("Helvetica-Bold", 10)
-        x_start = self.margin
+        # 2. Datenzeilen hinzufügen
+        for person in personnel_data:
+            name = person.get("name", "")
+            funktion = person.get("funktion", "")
+            table_data.append([name, funktion])
 
-        # Header zeichnen
-        for i, (header, width) in enumerate(zip(headers, col_widths)):
-            x_pos = x_start + sum(col_widths[:i])
-            c.drawString(x_pos + 0.1 * cm, y_pos, header)
-            c.rect(x_pos, y_pos - 0.4 * cm, width, 0.6 * cm, stroke=1, fill=0)
+        # 3. Optional: Mit leeren Zeilen aufüllen, um eine Mindestgröße zu erreichen
+        min_rows = 6
+        while len(table_data) < (min_rows + 1):
+            table_data.append(["", ""])
 
-        # Zeilen für Einträge mit Daten
-        c.setFont("Helvetica", 9)
-        for row in range(max(6, len(personnel_data))):  # Mindestens 6 Zeilen
-            y_row = y_pos - 0.6 * cm - (row * 0.6 * cm)
+        # 4. Tabelle erstellen
+        col_widths = [7 * cm, 6 * cm]
+        table = Table(table_data, colWidths=col_widths)
 
-            # Daten eintragen wenn vorhanden
-            person_data = personnel_data[row] if row < len(personnel_data) else {}
+        # 5. Tabellenstil definieren
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('BOX', (0, 0), (-1, -1), 1, colors.black),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ]))
 
-            data_fields = ["name", "funktion", "ankunft", "ende", "unterschrift"]
+        # 6. Tabelle auf dem Canvas zeichnen
+        # WICHTIG: Definiere die x_pos, bevor du sie verwendest
+        x_pos = self.margin
+        table_width = sum(col_widths)
 
-            for i, (width, field) in enumerate(zip(col_widths, data_fields)):
-                x_pos = x_start + sum(col_widths[:i])
-                c.rect(x_pos, y_row - 0.4 * cm, width, 0.6 * cm, stroke=1, fill=0)
+        # Berechne die Höhe der Tabelle, um sie korrekt zu positionieren
+        width, height = table.wrapOn(c, table_width, self.height)
 
-                # Wert eintragen
-                value = person_data.get(field, "")
-                if value:
-                    c.drawString(x_pos + 0.1 * cm, y_row - 0.1 * cm, str(value))
+        # Zeichne die Tabelle mit der korrekten x-Position
+        # Verwende hier zur Fehlersuche weiterhin die feste y-Koordinate
+        table.drawOn(c, x_pos, 15 * cm)
 
 
 def create_sample_data():
@@ -348,7 +365,7 @@ def main(alert_id=None):
 
     # Beispieldaten laden
     data = prepare_pdf_data(alert_id)
-
+    print("DEBUG: Daten für 'Maßnahme':", data.get("massnahme"))
     # Erstelle das Protokoll mit Daten
     output_file = "einsatzprotokoll_2_seiten.pdf"
     generator.create_protocol(data, output_file)

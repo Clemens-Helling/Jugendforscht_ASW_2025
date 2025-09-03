@@ -4,6 +4,7 @@ from Data.patient_crud import get_pseudonym_by_name,get_patient_by_pseudonym
 import Data.users_crud as user_crud
 from Data import crypto
 import datetime
+import json
 
 def update_status(alert_id, status):
     """Aktualisiert den Status eines Protokolls."""
@@ -161,48 +162,90 @@ def get_protokoll_by_alert_id(alert_id):
         "abhol_massnahme": protokoll.abhol_massnahme,
         "parents_notified_by": protokoll.parents_notified_by,
         "parents_notified_at": protokoll.parents_notified_at,
-        "hospital": protokoll.hospital
+        "hospital": protokoll.hospital,
+        "measures": protokoll.measures
     }
 
 # python
-# python
-# python
-# python
-# python
+def safe_decrypt(value):
+    if value is None:
+        return None
+    try:
+        return crypto.decrypt(value)
+    except Exception:
+        try:
+            if isinstance(value, (bytes, bytearray)):
+                return value.decode("utf-8", errors="replace")
+        except Exception:
+            pass
+        try:
+            return str(value)
+        except Exception:
+            return None
+
+def _to_datetime(value):
+    if value is None:
+        return None
+    if isinstance(value, (datetime.datetime, datetime.date)):
+        if isinstance(value, datetime.date) and not isinstance(value, datetime.datetime):
+            return datetime.datetime(value.year, value.month, value.day)
+        return value
+    if isinstance(value, (bytes, bytearray)):
+        try:
+            s = value.decode("utf-8").strip()
+        except Exception:
+            return None
+    else:
+        s = str(value).strip()
+    fmts = ("%d.%m.%Y %H:%M", "%d.%m.%Y", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d")
+    for fmt in fmts:
+        try:
+            return datetime.datetime.strptime(s, fmt)
+        except Exception:
+            continue
+    return None
+
+def _normalize_person(item):
+    if item is None:
+        return {"name": "", "funktion": ""}
+    if isinstance(item, dict):
+        name = item.get("name") or item.get("real_name") or item.get("first_name") or item.get("username") or ""
+        role = item.get("role") or item.get("funktion") or ""
+        return {"name": str(name).strip(), "funktion": str(role).strip()}
+    if isinstance(item, (list, tuple)):
+        if len(item) >= 2:
+            return {"name": str(item[0]).strip(), "funktion": str(item[1]).strip()}
+        if len(item) == 1:
+            return {"name": str(item[0]).strip(), "funktion": ""}
+        return {"name": "", "funktion": ""}
+    first = getattr(item, "real_name", None) or getattr(item, "first_name", None) or ""
+    last = getattr(item, "real_last_name", None) or getattr(item, "last_name", None) or ""
+    role = getattr(item, "role", None) or getattr(item, "funktion", None) or ""
+    full = " ".join(filter(None, [str(first).strip(), str(last).strip()])).strip()
+    if full:
+        return {"name": full, "funktion": str(role) if role is not None else ""}
+    return {"name": str(item).strip(), "funktion": str(role) if role is not None else ""}
+
+
+# -------------------- Die Hauptfunktion --------------------
+
 def prepare_pdf_data(alert_id):
-    import datetime
+    # Basisdaten
     protokoll = get_protokoll_by_alert_id(alert_id)
     if not protokoll:
         return None
 
     alert = session.query(Alarmierung).filter_by(alert_id=alert_id).first()
+    protokoll_db = session.query(Protokoll).filter_by(alert_id=alert_id).first()
+    protokoll_pk = getattr(protokoll_db, "protokoll_id", None)
 
     patient = session.query(Patient).filter_by(pseudonym=protokoll.get("pseudonym")).first()
     if not patient:
         print(f"Kein Patient mit Pseudonym {protokoll.get('pseudonym')} gefunden.")
         return None
 
-    def _to_datetime(value):
-        if value is None:
-            return None
-        if isinstance(value, (datetime.datetime, datetime.date)):
-            if isinstance(value, datetime.date) and not isinstance(value, datetime.datetime):
-                return datetime.datetime(value.year, value.month, value.day)
-            return value
-        if isinstance(value, bytes):
-            try:
-                s = value.decode("utf-8").strip()
-            except Exception:
-                return None
-        else:
-            s = str(value).strip()
-        fmts = ("%d.%m.%Y %H:%M", "%d.%m.%Y", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d")
-        for fmt in fmts:
-            try:
-                return datetime.datetime.strptime(s, fmt)
-            except Exception:
-                continue
-        return None
+    name = safe_decrypt(getattr(patient, "real_name", None))
+    vorname = safe_decrypt(getattr(patient, "real_last_name", None))
 
     birth_dt = _to_datetime(getattr(patient, "birth_day", None))
     geburtsdatum = birth_dt.strftime("%d.%m.%Y") if birth_dt else None
@@ -214,47 +257,52 @@ def prepare_pdf_data(alert_id):
         if teacher:
             teacher_name = f"{teacher.first_name} {teacher.last_name}"
 
-    # Rohdaten der beteiligten Personen holen
-    raw_personal = []
+    # Personal laden: Mehrere Fallbacks prüfen
+    raw_personal = None
     try:
-        raw_personal = user_crud.get_medic_by_protokoll_id(alert_id) or []
-    except Exception:
+        if protokoll_pk is not None and hasattr(user_crud, "get_medic_by_protokoll_id"):
+            raw_personal = user_crud.get_medic_by_protokoll_id(protokoll_pk)
+        if not raw_personal and hasattr(user_crud, "get_medic_by_protokoll_id"):
+            raw_personal = user_crud.get_medic_by_protokoll_id(alert_id)
+        if not raw_personal and hasattr(user_crud, "get_medic_names_by_alert_id"):
+            raw_personal = user_crud.get_medic_names_by_alert_id(alert_id)
+        if not raw_personal and hasattr(user_crud, "get_medics_by_alert_id"):
+            raw_personal = user_crud.get_medics_by_alert_id(alert_id)
+        if not raw_personal and hasattr(user_crud, "get_personal_by_alert"):
+            raw_personal = user_crud.get_personal_by_alert(alert_id)
+    except Exception as e:
+        print("Fehler beim Laden von Personal:", e)
         raw_personal = []
 
-    # Normalisieren zu Dicts mit Schlüssel "name" und "role"
-    def _normalize_person(item):
-        if item is None:
-            return {"name": "", "role": ""}
-        if isinstance(item, dict):
-            name = item.get("name") or item.get("real_name") or item.get("first_name") or item.get("username") or ""
-            role = item.get("role") or item.get("funktion") or ""
-            return {"name": str(name).strip(), "role": str(role).strip()}
-        # ORM-/Objekt-Fall: versuche Vorname/Nachname bzw. Rollenattribute
-        if hasattr(item, "__dict__") or any(hasattr(item, attr) for attr in ("first_name", "real_name", "last_name", "real_last_name", "username")):
-            first = getattr(item, "real_name", None) or getattr(item, "first_name", None) or ""
-            last = getattr(item, "real_last_name", None) or getattr(item, "last_name", None) or ""
-            full = " ".join(filter(None, [str(first).strip(), str(last).strip()])).strip()
-            role = getattr(item, "role", "") or getattr(item, "funktion", "")
-            return {"name": full or str(item), "role": str(role)}
-        # Liste/Tuple: joinen
-        if isinstance(item, (list, tuple)):
-            parts = [str(x).strip() for x in item if x is not None]
-            return {"name": " ".join(parts), "role": ""}
-        # primitive Typen (z.B. String)
-        return {"name": str(item).strip(), "role": ""}
+    if raw_personal is None:
+        raw_personal = []
 
+    # >>> NEUER TEIL HIER: Konvertierung des Strings in eine Liste <<<
+    if isinstance(raw_personal, str):
+        try:
+            # Versuche, den String als JSON zu parsen
+            raw_personal = json.loads(raw_personal)
+        except json.JSONDecodeError:
+            print("Warnung: Konnte den Personal-String nicht als JSON laden.")
+            # Bei einem Fehler eine leere Liste verwenden, um Abstürze zu vermeiden
+            raw_personal = []
+    # >>> ENDE NEUER TEIL <<<
+
+
+    # Normalisierung von Personal-Einträgen zu Dicts
+    # Die Schleife ruft jetzt die Helferfunktion von außerhalb auf
     personal_list = [_normalize_person(p) for p in raw_personal]
 
     parents_dt = _to_datetime(protokoll.get("parents_notified_at"))
     operation_dt = _to_datetime(protokoll.get("operation_end"))
 
     pdf_data = {
-        "name": crypto.decrypt(getattr(patient, "real_name", None)),
-        "vorname": crypto.decrypt(getattr(patient, "real_last_name", None)),
+        "name": name,
+        "vorname": vorname,
         "geburtsdatum": geburtsdatum,
         "klassenlehrer": teacher_name,
         "symptom": alert.symptom if alert else "Unbekannt",
-        "alarm_type": alert.alert_type if alert else "Unbekannt",
+        "alarm_typ": alert.alert_type if alert else "Unbekannt",
         "alarm_eingegangen": alert.alert_received if alert else "Unbekannt",
         "status": protokoll.get("status"),
         "puls": protokoll.get("pulse"),
@@ -272,4 +320,6 @@ def prepare_pdf_data(alert_id):
         "personal": personal_list
     }
 
+    print("DEBUG prepare_pdf_data personal count:", len(personal_list))
     return pdf_data
+
