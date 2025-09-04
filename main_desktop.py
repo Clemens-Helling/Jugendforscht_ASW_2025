@@ -2,11 +2,12 @@ import ttkbootstrap as tb
 from ttkbootstrap import DateEntry
 from ttkbootstrap.constants import *
 import tkinter.font as tkFont
+import tkinter.messagebox as mbox
 from Alert import alarm
-from Data import patient_crud, alerts_crud, protokoll_crud
+from Data import patient_crud, alerts_crud, protokoll_crud, materials_crud
 import datetime
 from PDF.pdf import main
-
+from sani_base import MaterialPage
 
 
 class PlaceholderEntry(tb.Entry):
@@ -69,9 +70,9 @@ class App(tb.Window):
         ).pack(side=LEFT, padx=5, pady=5)
         tb.Button(
             navbar,
-            text="El Protokol",
+            text="Materialverwaltung",
             style="dark",
-            command=lambda: self.show_frame("AboutPage"),
+            command=lambda: self.show_frame("MaterialPage"),
         ).pack(side=LEFT, padx=5, pady=5)
         tb.Button(
             navbar,
@@ -95,7 +96,7 @@ class App(tb.Window):
         self.frames = {}
 
         # Seiten initialisieren und in dict speichern
-        for F in (AlertPage, AboutPage, DetailPage):
+        for F in (AlertPage, AboutPage, DetailPage, MaterialPage):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -126,7 +127,7 @@ class AlertPage(tb.Frame):
         last_name_entry = PlaceholderEntry(self, "Nachname")
         last_name_entry.pack(pady=10)
 
-        self.birth_entry = DateEntry(self )
+        self.birth_entry = DateEntry(self)
 
         self.birth_entry.pack(pady=10)
 
@@ -137,7 +138,8 @@ class AlertPage(tb.Frame):
         symptom_combobox.pack(pady=10)
 
         alert_type_combobox = tb.Combobox(
-            self, values=["Unfall", "Erkrankung", "Sonstiges"])
+            self, values=["Unfall", "Erkrankung", "Sonstiges"]
+        )
         alert_type_combobox.set("Alarmtyp")
         alert_type_combobox.pack(pady=10)
 
@@ -152,21 +154,25 @@ class AlertPage(tb.Frame):
         )
         self.alert_without_name_var = tb.BooleanVar()
         alert_without_name = tb.Checkbutton(
-            self,
-            text="Alarm ohne Name",
-            variable=self.alert_without_name_var
+            self, text="Alarm ohne Name", variable=self.alert_without_name_var
         )
         alert_without_name.pack(pady=10)
-        tb.Button(self, text="Alarmieren", style="Custom.TButton", width=10, command=self.on_alarm_button_click).pack(
-            pady=10
-        )
+        tb.Button(
+            self,
+            text="Alarmieren",
+            style="Custom.TButton",
+            width=10,
+            command=self.on_alarm_button_click,
+        ).pack(pady=10)
 
     def on_alarm_button_click(self):
-        name = self.children['!placeholderentry'].get()
-        last_name = self.children['!placeholderentry2'].get()
-        birthday = datetime.datetime.strptime(self.birth_entry.entry.get(), "%d.%m.%Y").strftime("%d.%m.%Y")
-        symptom = self.children['!combobox'].get()
-        alert_type = self.children['!combobox2'].get()
+        name = self.children["!placeholderentry"].get()
+        last_name = self.children["!placeholderentry2"].get()
+        birthday = datetime.datetime.strptime(
+            self.birth_entry.entry.get(), "%d.%m.%Y"
+        ).strftime("%d.%m.%Y")
+        symptom = self.children["!combobox"].get()
+        alert_type = self.children["!combobox2"].get()
         is_alert_without_name = self.alert_without_name_var.get()
 
         if symptom == "Symptome" or alert_type == "Alarmtyp":
@@ -180,7 +186,9 @@ class AlertPage(tb.Frame):
             alert_id = alarm.add_alert(symptom, alert_type)
             print(f"Alert ID in  {alert_id}")
             patient_crud.add_patient(name, last_name, birthday, alert_id)
-            print(f"Alarm ausgelöst für {name} {last_name} mit Symptom: {symptom} und Alarmtyp: {alert_type}")
+            print(
+                f"Alarm ausgelöst für {name} {last_name} mit Symptom: {symptom} und Alarmtyp: {alert_type}"
+            )
 
 
 class AboutPage(tb.Frame):
@@ -197,7 +205,13 @@ class AboutPage(tb.Frame):
         self.search_birthdate_entry = DateEntry(self)
         self.search_birthdate_entry.pack(pady=10)
 
-        tb.Button(self, text="Suchen", style="Custom.TButton", width=10, command=self.search_alerts).pack(pady=10)
+        tb.Button(
+            self,
+            text="Suchen",
+            style="Custom.TButton",
+            width=10,
+            command=self.search_alerts,
+        ).pack(pady=10)
 
         self.result_table = tb.Treeview(
             self, columns=("Name", "Nachname", "operation_end"), show="headings"
@@ -208,7 +222,6 @@ class AboutPage(tb.Frame):
         self.result_table.heading("operation_end", text="Einsatzende")
         self.result_table.pack(pady=10)
 
-
         # Scrollbar hinzufügen
         scrollbar = tb.Scrollbar(
             self, orient="vertical", command=self.result_table.yview
@@ -218,17 +231,22 @@ class AboutPage(tb.Frame):
         self.result_table.pack(side="left", fill="both", expand=True)
         self.result_table.bind("<ButtonRelease-1>", self.on_row_click)
 
-
-        self.protokoll_data_by_item = {}  # Mapping von Treeview-Item-ID zu Protokoll-Daten
+        self.protokoll_data_by_item = (
+            {}
+        )  # Mapping von Treeview-Item-ID zu Protokoll-Daten
 
     def search_alerts(self):
         for item in self.result_table.get_children():
             self.result_table.delete(item)
         self.protokoll_data_by_item.clear()
-        first_name = self.children['!placeholderentry'].get()
-        last_name = self.children['!placeholderentry2'].get().strip()
-        birth_date = datetime.datetime.strptime(self.search_birthdate_entry.entry.get(), "%d.%m.%Y").strftime("%d.%m.%Y")
-        print(f"Suche nach Protokollen für: {first_name} {last_name}, Geburtsdatum: {birth_date}")
+        first_name = self.children["!placeholderentry"].get()
+        last_name = self.children["!placeholderentry2"].get().strip()
+        birth_date = datetime.datetime.strptime(
+            self.search_birthdate_entry.entry.get(), "%d.%m.%Y"
+        ).strftime("%d.%m.%Y")
+        print(
+            f"Suche nach Protokollen für: {first_name} {last_name}, Geburtsdatum: {birth_date}"
+        )
         if not first_name or not last_name or not birth_date:
             print("Bitte füllen Sie alle Felder aus.")
             return
@@ -241,12 +259,17 @@ class AboutPage(tb.Frame):
         else:
             for protokoll in protokolls:
                 item_id = self.result_table.insert(
-                    "", "end",
+                    "",
+                    "end",
                     values=(
-                        patient_crud.get_patient_by_pseudonym(protokoll["pseudonym"])["real_name"],
-                        patient_crud.get_patient_by_pseudonym(protokoll["pseudonym"])["real_last_name"],
-                        protokoll["operation_end"]
-                    )
+                        patient_crud.get_patient_by_pseudonym(protokoll["pseudonym"])[
+                            "real_name"
+                        ],
+                        patient_crud.get_patient_by_pseudonym(protokoll["pseudonym"])[
+                            "real_last_name"
+                        ],
+                        protokoll["operation_end"],
+                    ),
                 )
                 self.protokoll_data_by_item[item_id] = protokoll
 
@@ -266,10 +289,14 @@ class DetailPage(tb.Frame):
         self.controller = controller
         self.current_protokoll = None  # Attribut initialisieren
 
-        tb.Label(self, text="Protokolldetails", font=("Exo 2 ExtraBold", 16)).pack(pady=20)
+        tb.Label(self, text="Protokolldetails", font=("Exo 2 ExtraBold", 16)).pack(
+            pady=20
+        )
         self.detail_label = tb.Label(self, text="Details werden hier angezeigt")
         self.detail_label.pack(pady=10)
-        self.pdf_button = tb.Button(self, text="Als PDF speichern", command=self.save_as_pdf)
+        self.pdf_button = tb.Button(
+            self, text="Als PDF speichern", command=self.save_as_pdf
+        )
         self.pdf_button.pack(pady=10)
         self.back_button = tb.Button(self, text="Back", command=self.show_back)
         self.back_button.pack(pady=10)
@@ -290,12 +317,106 @@ class DetailPage(tb.Frame):
 
         alert_id = self.current_protokoll.get("alert_id")
 
-
         if alert_id:
             self.current_protokoll["alert_id"] = alert_id
             main(alert_id)
         else:
-            print("Warnung: Keine alert_id gefunden. PDF wird trotzdem mit vorhanden Daten erstellt.")
+            print(
+                "Warnung: Keine alert_id gefunden. PDF wird trotzdem mit vorhanden Daten erstellt."
+            )
+
+
+# python
+class MaterialPage(tb.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        material_list = materials_crud.get_all_material_names()
+        # Button rechts zuerst packen, damit das Label in der Mitte bleibt
+        self.selected_row = None  # Variable zum Speichern der ausgewählten Zeile
+        titel_label = tb.Label(
+            self, text="Materialverwaltung", font=("Exo 2 ExtraBold", 16)
+        ).pack(pady=20)
+        self.material_select_combobox = tb.Combobox(self, values=material_list)
+        self.material_select_combobox.set("Material auswählen")
+        self.material_select_combobox.pack(pady=10)
+        self.material_select_combobox.bind("<FocusIn>", lambda e: self.refresh_material_combobox())
+        # Korrektes Argument: side statt fälschlichem self
+        self.menge_entry = PlaceholderEntry(self, "Menge")
+        self.menge_entry.pack(pady=10)
+        self.ablauf_entry = DateEntry(self)
+        self.ablauf_entry.pack(pady=10)
+        self.ablauf_entry.entry.delete(0, "end")
+        tb.Button(self, text="Material Hinzufügen", bootstyle="sucsess", command=self.add_material ).pack(pady=10)
+        tb.Button(self, text="Material Entfernen", style="danger", command=self.subtract_material).pack(pady=10)
+        tb.Button(self, text="Neues Material", style="info", command= self.create_new_material).pack(pady=10)
+
+        self.material_treeview = tb.Treeview(
+            self, columns=("Material", "Menge", "Ablaufdatum"), show="headings"
+        )
+        self.material_treeview.heading("Material", text="Material")
+        self.material_treeview.heading("Menge", text="Menge")
+        self.material_treeview.heading("Ablaufdatum", text="Ablaufdatum")
+        self.material_treeview.pack(pady=10, fill=BOTH, expand=True)
+        scrollbar = tb.Scrollbar(
+            self, orient="vertical", command=self.material_treeview.yview
+        )
+        self.material_treeview.configure(yscroll=scrollbar.set)
+        scrollbar.pack(side="right", fill="y")
+        self.material_treeview.pack(side="left", fill="both", expand=True)
+        self.refresh_material_list()
+
+    def add_material(self):
+        material = self.material_select_combobox.get()
+        menge = self.menge_entry.get()
+        ablaufdatum = self.ablauf_entry.entry.get()
+        material_id = materials_crud.get_material_id_by_name(material)
+        if material_id and menge.isdigit():
+            materials_crud.add_material_quantity(material_id, int(menge))
+        if material_id and ablaufdatum:
+            ablaufdatum_dt = datetime.datetime.strptime(ablaufdatum, "%d.%m.%Y")
+            materials_crud.update_material_expiration(material_id, ablaufdatum_dt)
+        self.refresh_material_list()
+
+    def subtract_material(self):
+        material = self.material_select_combobox.get()
+        menge = self.menge_entry.get()
+        ablaufdatum = self.ablauf_entry.entry.get()
+        material_id = materials_crud.get_material_id_by_name(material)
+        if material_id and menge.isdigit():
+            materials_crud.subtract_material_quantity(material_id, int(menge))
+        if material_id and ablaufdatum:
+            ablaufdatum_dt = datetime.datetime.strptime(ablaufdatum, "%d.%m.%Y")
+            materials_crud.update_material_expiration(material_id, ablaufdatum_dt)
+        self.refresh_material_list()
+
+    def refresh_material_list(self):
+        for item in self.material_treeview.get_children():
+            self.material_treeview.delete(item)
+        materials = materials_crud.get_all_materials()
+        for mat in materials:
+            self.material_treeview.insert(
+                "",
+                "end",
+                values=(mat["material_name"], mat["quantity"], mat["expires_at"]),
+            )
+    def refresh_material_combobox(self):
+        print("refresh_material_combobox")
+        material_list = materials_crud.get_all_material_names()
+        self.material_select_combobox['values'] = material_list
+
+    def create_new_material(self):
+        name = self.material_select_combobox.get()
+        menge = self.menge_entry.get()
+        ablaufdatum = self.ablauf_entry.entry.get()
+        if name and menge.isdigit() and ablaufdatum:
+            ablaufdatum_dt = datetime.datetime.strptime(ablaufdatum, "%d.%m.%Y")
+            materials_crud.add_material(name, int(menge), ablaufdatum_dt)
+            self.refresh_material_list()
+            self.refresh_material_combobox()
+        else:
+            mbox.showerror("Fehler", "Bitte füllen Sie alle Felder korrekt aus.")
+
 
 
 if __name__ == "__main__":

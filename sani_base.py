@@ -4,7 +4,7 @@ from ttkbootstrap.constants import *
 import tkinter.font as tkFont
 import tkinter.messagebox as mbox
 from Alert import alarm
-from Data import patient_crud, alerts_crud, protokoll_crud, users_crud
+from Data import patient_crud, alerts_crud, protokoll_crud, users_crud, materials_crud
 import datetime
 
 from Data.materials_crud import add_material_to_protokoll, get_all_material_names
@@ -411,7 +411,10 @@ class MaterialPage(tb.Frame):
     def save_materials(self):
         for item in self.material_treeview.get_children():
             material, menge = self.material_treeview.item(item, "values")
+            material_id = materials_crud.get_material_id_by_name(material)
+            materials_crud.subtract_material_quantity(material_id, int(menge))
             add_material_to_protokoll(self.controller.alert_id, material, int(menge))
+
         print("Materialien gespeichert")
         protokoll_crud.close_alert(self.controller.alert_id)
         self.controller.show_frame("AlertsPage")

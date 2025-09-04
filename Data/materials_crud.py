@@ -28,11 +28,21 @@ def get_material(material_name):
         return None
 
 
-def update_material_quantity(material_id, quantity):
+def add_material_quantity(material_id, quantity):
     """Aktualisiert die Menge eines Materials."""
     material = session.query(Material).filter_by(material_id=material_id).first()
     if material:
-        material.quantity = quantity
+        material.quantity = material.quantity + quantity
+        session.commit()
+        print(f"Material {material.material_name} aktualisiert.")
+    else:
+        print(f"Material mit ID {material_id} nicht gefunden.")
+
+def subtract_material_quantity(material_id, quantity):
+    """Aktualisiert die Menge eines Materials."""
+    material = session.query(Material).filter_by(material_id=material_id).first()
+    if material:
+        material.quantity = material.quantity - quantity
         session.commit()
         print(f"Material {material.material_name} aktualisiert.")
     else:
@@ -93,3 +103,27 @@ def get_all_material_names():
     materials = session.query(Material).all()
     return [f"{m.material_name}" for m in materials]
 print(get_materials_by_protokoll(protokoll_id=23))
+
+def get_all_materials():
+    """Gibt alle Materialien zurück."""
+    materials = session.query(Material).all()
+    result = []
+    for material in materials:
+        result.append(
+            {
+                "material_id": material.material_id,
+                "material_name": material.material_name,
+                "quantity": material.quantity,
+                "expires_at": material.expires_at,
+            }
+        )
+    return result
+
+def get_material_id_by_name(material_name):
+    """Gibt die ID eines Materials anhand seines Namens zurück."""
+    material = session.query(Material).filter_by(material_name=material_name).first()
+    if material:
+        return material.material_id
+    else:
+        print(f"Material {material_name} nicht gefunden.")
+        return None
