@@ -39,8 +39,7 @@ class App(tb.Window):
         self.geometry("800x480")
 
         # Icon für Fenster und Taskleiste setzen
-        icon_path = 'icon.ico'
-        self.iconbitmap(icon_path)
+
 
         # Zusätzlich für Windows-Taskleiste
 
@@ -66,30 +65,12 @@ class App(tb.Window):
             font=("Exo 2 Black", 16),
             style="Custom.TLabel",
         ).pack(side=LEFT, padx=5, pady=5)
-        tb.Button(
-            self.navbar,
-            text="Alarmierung",
-            style="dark",
-            command=lambda: self.show_frame("AlertPage"),
-        ).pack(side=LEFT, padx=(100, 10), pady=5)
-        tb.Button(
-            self.navbar,
-            text="Alarmsuche",
-            style="dark",
-            command=lambda: self.show_frame("AboutPage"),
-        ).pack(side=LEFT, padx=5, pady=5)
-        tb.Button(
-            self.navbar,
-            text="El Protokol",
-            style="dark",
-            command=lambda: self.show_frame("AboutPage"),
-        ).pack(side=LEFT, padx=5, pady=5)
-        tb.Button(
-            self.navbar,
-            text="Benutzerverwaltung",
-            style="dark",
-            command=lambda: self.show_frame("AboutPage"),
-        ).pack(side=LEFT, padx=5, pady=5)
+
+
+
+
+
+
         tb.Button(
             self.navbar,
             text="Alarme",
@@ -303,7 +284,7 @@ class AlertsPage(tb.Frame):
             rely = row * 0.5 + 0.01
 
             # Widget platzieren mit kleinerer Größe
-            widget.place(relx=relx, rely=rely, relwidth=0.23, relheight=0.23)
+            widget.place(relx=relx, rely=rely, relwidth=0.4, relheight=0.5)
 
 
 
@@ -475,8 +456,8 @@ class AlarmWidget(tb.Frame):
             width=30,
             height=50,
         )
-        widget_frame.pack_propagate(False)  # Verhindert automatische Größenanpassung
-        widget_frame.pack(padx=10, pady=10, fill=BOTH, expand=True)
+        widget_frame.pack_propagate(True)  # Verhindert automatische Größenanpassung
+        widget_frame.pack(padx=10, pady=10, expand=True)
 
         # Alarm-Informationen anzeigen (mit weißer Schrift)
         tb.Label(
@@ -485,7 +466,7 @@ class AlarmWidget(tb.Frame):
             font=("Exo 2 Bold", 8),
             foreground="white",
             background=self.get_background_color(alert_type)
-        ).pack(side=TOP, padx=5, pady=(1, 0))  # Reduzierter Abstand nach unten
+        ).pack(side=TOP, padx=5, pady=0)  # Reduzierter Abstand nach unten
 
 
         tb.Button(

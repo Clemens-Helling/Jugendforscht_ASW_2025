@@ -140,5 +140,40 @@ def get_medic_names_by_alert_id(alert_id):
         "operationsmanager": f"{operationsmanager.name} {operationsmanager.last_name}" if operationsmanager else None,
     }
     personal_list = transform_personal(inputData)
+
+def get_sani_protokoll_id_by_alert_id(alert_id):
+    """Gibt die SaniProtokoll_ID anhand der Alert-ID zurück."""
+    protokoll = session.query(Protokoll).filter_by(alert_id=alert_id).first()
+    if not protokoll:
+        print(f"Kein Protokoll mit alert_id {alert_id} gefunden.")
+        return None
+
+    sani_protokoll = (
+        session.query(SaniProtokoll)
+        .filter_by(protokoll_id=protokoll.protokoll_id)
+        .first()
+    )
+    if not sani_protokoll:
+        print(f"Kein SaniProtokoll für Protokoll {protokoll.protokoll_id} gefunden.")
+        return None
+
+    return sani_protokoll.sani_protokoll_id
+
+
+def get_user_by_card_number(card_number):
+    """Gibt einen Benutzer anhand seiner Karten­nummer zurück."""
+    user = session.query(User).filter_by(karten_nummer=card_number).first()
+    if user:
+        return {
+            "User_ID": user.User_ID,
+            "name": user.name,
+            "last_name": user.last_name,
+            "lernbegleiter": user.lernbegleiter,
+            "karten_nummer": user.karten_nummer,
+            "permission": user.permission,
+        }
+    else:
+        print(f"Kein Benutzer mit Karten­nummer {card_number} gefunden.")
+        return None
     return json.dumps(personal_list, ensure_ascii=False, indent=4)
 

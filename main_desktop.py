@@ -1,11 +1,15 @@
 import ttkbootstrap as tb
+from click import command
 from ttkbootstrap import DateEntry
 from ttkbootstrap.constants import *
 import tkinter.font as tkFont
+from tkinter import filedialog, messagebox
 from Alert import alarm
 from Data import patient_crud, alerts_crud, protokoll_crud
 import datetime
+
 from PDF.pdf import main
+import os
 
 
 
@@ -35,7 +39,7 @@ class App(tb.Window):
         super().__init__(themename="sanilink-light")
         self.title("SaniLink")
         self.geometry("1200x800")
-
+        selected_alert = None
         # Navbar
 
         navbar = tb.Frame(self, style="dark")
@@ -71,7 +75,7 @@ class App(tb.Window):
             navbar,
             text="El Protokol",
             style="dark",
-            command=lambda: self.show_frame("AboutPage"),
+            command=lambda: self.show_frame("ElDataPage"),
         ).pack(side=LEFT, padx=5, pady=5)
         tb.Button(
             navbar,
@@ -95,7 +99,7 @@ class App(tb.Window):
         self.frames = {}
 
         # Seiten initialisieren und in dict speichern
-        for F in (AlertPage, AboutPage, DetailPage):
+        for F in (AlertPage, AboutPage, DetailPage, ElDataPage):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -164,7 +168,7 @@ class AlertPage(tb.Frame):
     def on_alarm_button_click(self):
         name = self.children['!placeholderentry'].get()
         last_name = self.children['!placeholderentry2'].get()
-        birthday = datetime.datetime.strptime(self.birth_entry.entry.get(), "%d.%m.%Y").strftime("%d.%m.%Y")
+
         symptom = self.children['!combobox'].get()
         alert_type = self.children['!combobox2'].get()
         is_alert_without_name = self.alert_without_name_var.get()
@@ -175,8 +179,10 @@ class AlertPage(tb.Frame):
 
         if is_alert_without_name:
             alert_id = alarm.add_alert(symptom, alert_type)
+            protokoll_crud.update_status(alert_id, "ohne Name")
             print("Alarm ohne Name ausgelöst.")
         else:
+            birthday = datetime.datetime.strptime(self.birth_entry.entry.get(), "%d.%m.%Y").strftime("%d.%m.%Y")
             alert_id = alarm.add_alert(symptom, alert_type)
             print(f"Alert ID in  {alert_id}")
             patient_crud.add_patient(name, last_name, birthday, alert_id)
@@ -207,6 +213,8 @@ class AboutPage(tb.Frame):
 
         self.result_table.heading("operation_end", text="Einsatzende")
         self.result_table.pack(pady=10)
+
+
 
 
         # Scrollbar hinzufügen
@@ -271,6 +279,8 @@ class DetailPage(tb.Frame):
         self.detail_label.pack(pady=10)
         self.pdf_button = tb.Button(self, text="Als PDF speichern", command=self.save_as_pdf)
         self.pdf_button.pack(pady=10)
+        self.el_data_button = tb.Button(self, text="Einsatzleit-Protokol", command= self.save_el_data)
+        self.el_data_button.pack(pady=10)
         self.back_button = tb.Button(self, text="Back", command=self.show_back)
         self.back_button.pack(pady=10)
 
@@ -292,10 +302,87 @@ class DetailPage(tb.Frame):
 
 
         if alert_id:
+
             self.current_protokoll["alert_id"] = alert_id
-            main(alert_id)
+            file_path = filedialog.asksaveasfilename(
+                defaultextension=".pdf",
+                filetypes=[("PDF Dateien", "*.pdf")],
+                initialfile="einsatz_protokoll.pdf",
+                title="Speicherort für PDF wählen")
+            main(alert_id, file_path)
+            if os.path.exists(file_path):
+                if messagebox.askyesno("Öffnen", "PDF wurde erstellt. Möchten Sie die Datei öffnen?"):
+                    os.startfile(file_path)
         else:
             print("Warnung: Keine alert_id gefunden. PDF wird trotzdem mit vorhanden Daten erstellt.")
+
+    def save_el_data(self):
+        self.controller.selected_alert = self.current_protokoll.get("alert_id")
+        self.controller.show_frame("ElDataPage")
+
+
+class ElDataPage(tb.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        tb.Label(self, text="Einsatzleit-Protokol", font=("Exo 2 ExtraBold", 16)).pack(pady=20)
+        PlaceholderEntry(self, "Eltern benachrichtigt von").pack(pady=10)
+        PlaceholderEntry(self, "Eltern benachrichtigt um").pack(pady=10)
+        measure_combobox = tb.Combobox(self, values=["Rettungsdienst", "Taxifahrt ins KH/zum Arzt","Aleine nach hause" ])
+        measure_combobox.set("Maßnahme")
+        measure_combobox.bind("<<ComboboxSelected>>",  self.on_selection)
+        measure_combobox.pack(pady=10)
+        self.escort_person_entry = PlaceholderEntry(self, "Begleitperson")
+        self.hospital_entry = PlaceholderEntry(self, "Krankenhaus")
+        tb.Button(self, text="Speichern", style="success", width=10, command=self.save_data).pack(pady=10)
+
+
+
+    def on_selection(self, event):
+        selection = event.widget.get()
+        if selection == "Rettungsdienst":
+            self.hospital_entry.pack(pady=10)
+            self.escort_person_entry.forget()
+        elif selection == "Taxifahrt ins KH/zum Arzt":
+            self.escort_person_entry.pack(pady=10)
+            self.hospital_entry.forget()
+        else:
+            self.escort_person_entry.forget()
+            self.hospital_entry.forget()
+
+    def save_data(self):
+        notified_by = self.children['!placeholderentry'].get()
+        notified_time = self.children['!placeholderentry2'].get()
+        measure = self.children['!combobox'].get()
+        escort_person = self.escort_person_entry.get()
+        hospital = self.hospital_entry.get()
+        time_obj = datetime.datetime.strptime(notified_time, "%H:%M").time()
+
+        # Mit heutigem Datum kombinieren
+        dt = datetime.datetime.combine(datetime.date.today(), time_obj)
+        if measure == "Taxifahrt ins KH/zum Arzt" :
+            updatet_measure = f"{measure} mit {escort_person}"
+            protokoll_crud.add_pickup_measure_to_protokoll(self.controller.selected_alert, updatet_measure, notified_by, dt)
+        elif measure == "Rettungsdienst":
+            protokoll_crud.add_pickup_measure_to_protokoll(self.controller.selected_alert, measure, notified_by, dt)
+            protokoll_crud.add_hospital_to_protokoll(self.controller.selected_alert, hospital)
+        else:
+            protokoll_crud.add_pickup_measure_to_protokoll(self.controller.selected_alert, measure, notified_by, dt)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 if __name__ == "__main__":

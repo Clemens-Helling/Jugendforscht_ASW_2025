@@ -359,7 +359,7 @@ def create_sample_data():
 
 
 
-def main(alert_id=None):
+def main(alert_id, filename):
     """Hauptfunktion zum Erstellen des Protokolls"""
     generator = EinsatzprotokollGenerator()
 
@@ -367,7 +367,7 @@ def main(alert_id=None):
     data = prepare_pdf_data(alert_id)
     print("DEBUG: Daten für 'Maßnahme':", data.get("massnahme"))
     # Erstelle das Protokoll mit Daten
-    output_file = "einsatzprotokoll_2_seiten.pdf"
+    output_file = filename
     generator.create_protocol(data, output_file)
 
     print(f"\n✓ Einsatzprotokoll (2 Seiten) wurde erfolgreich erstellt: {output_file}")
