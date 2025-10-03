@@ -63,6 +63,7 @@ class Material(Base):
     material_name = Column(String(255), unique=True)
     quantity = Column(Integer)
     expires_at = Column(DateTime)  # In MySQL vorhanden
+    minimum_stock = Column(Integer)
 
     protokoll_materials = relationship("ProtokollMaterials", back_populates="material")
 

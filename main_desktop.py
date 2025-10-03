@@ -5,7 +5,7 @@ from ttkbootstrap.constants import *
 import tkinter.font as tkFont
 from tkinter import filedialog, messagebox
 from Alert import alarm
-from Data import patient_crud, alerts_crud, protokoll_crud
+from Data import patient_crud, alerts_crud, protokoll_crud, users_crud
 import datetime
 
 from PDF.pdf import main
@@ -71,17 +71,12 @@ class App(tb.Window):
             style="dark",
             command=lambda: self.show_frame("AboutPage"),
         ).pack(side=LEFT, padx=5, pady=5)
-        tb.Button(
-            navbar,
-            text="El Protokol",
-            style="dark",
-            command=lambda: self.show_frame("ElDataPage"),
-        ).pack(side=LEFT, padx=5, pady=5)
+
         tb.Button(
             navbar,
             text="Benutzerverwaltung",
             style="dark",
-            command=lambda: self.show_frame("AboutPage"),
+            command=lambda: self.show_frame("UserManagementPage"),
         ).pack(side=LEFT, padx=5, pady=5)
         tb.Button(navbar, text="Beenden", style="danger", command=self.destroy).pack(
             side=RIGHT, padx=5, pady=5
@@ -99,7 +94,7 @@ class App(tb.Window):
         self.frames = {}
 
         # Seiten initialisieren und in dict speichern
-        for F in (AlertPage, AboutPage, DetailPage, ElDataPage):
+        for F in (AlertPage, AboutPage, DetailPage, ElDataPage, UserManagementPage):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -368,6 +363,56 @@ class ElDataPage(tb.Frame):
             protokoll_crud.add_hospital_to_protokoll(self.controller.selected_alert, hospital)
         else:
             protokoll_crud.add_pickup_measure_to_protokoll(self.controller.selected_alert, measure, notified_by, dt)
+
+class UserManagementPage(tb.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        lehrer_liste = users_crud.get_all_teachers()
+        tb.Label(self, text="Benutzerverwaltung", font=("Exo 2 ExtraBold", 16)).pack(pady=20)
+        first_name_entry = PlaceholderEntry(self, "Vorname")
+        first_name_entry.pack(pady=10)
+        last_name_entry = PlaceholderEntry(self, "Nachname")
+        last_name_entry.pack(pady=10)
+        lb_combobox = tb.Combobox(self, values=lehrer_liste)
+        lb_combobox.set("Lehrkraft")
+        lb_combobox.pack(pady=10)
+        card_number_entry = PlaceholderEntry(self, "Kartennummer")
+        card_number_entry.pack(pady=10)
+        role_combobox = tb.Combobox(self, values=["Admin", "User", "Junior"])
+        role_combobox.set("Rolle")
+        role_combobox.pack(pady=10)
+        tb.Button(self, text="Benutzer hinzufügen", style="success", width=15, command=self.add_user).pack(pady=10)
+        self.user_table = tb.Treeview(
+            self, columns=("Vorname", "Nachname", "Lehrkraft", "Kartennummer", "Rolle"), show="headings"
+        )
+
+        self.user_table.heading("Vorname", text="Vorname")
+        self.user_table.heading("Nachname", text="Nachname")
+        self.user_table.heading("Lehrkraft", text="Lehrkraft")
+        self.user_table.heading("Kartennummer", text="Kartennummer")
+        self.user_table.heading("Rolle", text="Rolle")
+        self.user_table.pack(pady=10, fill=BOTH, expand=True)
+        self.load_users()
+
+    # Python
+    def load_users(self):
+        users = users_crud.get_all_users()
+        for user in users:
+            # Alle Werte in Strings umwandeln und geschweifte Klammern ersetzen
+            safe_values = [str(v).replace("{", "(").replace("}", ")") for v in user]
+            self.user_table.insert(
+                "", "end",
+                values=safe_values
+            )
+
+        # Hier können Sie die Benutzerverwaltungsfunktionen hinzufügen
+
+
+
+    def add_user(self):
+        pass
+
 
 
 

@@ -404,14 +404,66 @@ class HealthDataPage(tb.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
-        tb.Label(self, text="Gesundheitsdaten", font=("Exo 2 ExtraBold", 16)).pack(pady=20)
-        temperature_entry = PlaceholderEntry(self, "Körpertemperatur (°C)").pack(pady=10)
-        blood_presure_entry = PlaceholderEntry(self, "Blutdruck (mmHg)").pack(pady=10)
-        heart_rate_entry = PlaceholderEntry(self, "Herzfrequenz (BPM)").pack(pady=10)
-        blood_sugar_entry = PlaceholderEntry(self, "Blutzucker").pack(pady=10)
-        spo2_entry = PlaceholderEntry(self, "Sauerstoffsättigung (%)").pack(pady=10)
-        pain_entry = PlaceholderEntry(self, "Schmerzen 1-10").pack(pady=10)
-        tb.Button(self, text="Daten speichern", style="Custom.TButton", width=20, command=self.save_health_data).pack(pady=10)
+
+        # --- Scrollbarer Bereich ---
+        canvas = tb.Canvas(self, highlightthickness=0)
+        scrollbar = tb.Scrollbar(self, orient="vertical", command=canvas.yview)
+        self.scrollable_frame = tb.Frame(canvas)
+
+        # Window ins Canvas einfügen (center!)
+        window = canvas.create_window((0, 0), window=self.scrollable_frame, anchor="n")
+
+        # Scrollregion aktualisieren, wenn sich Frame-Größe ändert
+        def on_configure(event):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+            # Frame immer an Canvas-Breite anpassen
+            canvas.itemconfig(window, width=canvas.winfo_width())
+
+        self.scrollable_frame.bind("<Configure>", on_configure)
+        canvas.bind("<Configure>", on_configure)
+
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side="left", fill="both", expand=True, padx=20, pady=10)
+        scrollbar.pack(side="right", fill="y")
+
+        # Mousewheel aktivieren
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1*(event.delta / 120)), "units")
+
+        canvas.bind_all("<MouseWheel>", _on_mousewheel)
+
+        # --- Inhalte (zentriert) ---
+        tb.Label(
+            self.scrollable_frame,
+            text="Gesundheitsdaten",
+            font=("Exo 2 ExtraBold", 16)
+        ).pack(pady=20)
+
+        self.temperature_entry = PlaceholderEntry(self.scrollable_frame, "Körpertemperatur (°C)")
+        self.temperature_entry.pack(pady=10)
+
+        self.blood_pressure_entry = PlaceholderEntry(self.scrollable_frame, "Blutdruck (mmHg)")
+        self.blood_pressure_entry.pack(pady=10)
+
+        self.heart_rate_entry = PlaceholderEntry(self.scrollable_frame, "Herzfrequenz (BPM)")
+        self.heart_rate_entry.pack(pady=10)
+
+        self.blood_sugar_entry = PlaceholderEntry(self.scrollable_frame, "Blutzucker")
+        self.blood_sugar_entry.pack(pady=10)
+
+        self.spo2_entry = PlaceholderEntry(self.scrollable_frame, "Sauerstoffsättigung (%)")
+        self.spo2_entry.pack(pady=10)
+
+        self.pain_entry = PlaceholderEntry(self.scrollable_frame, "Schmerzen 1-10")
+        self.pain_entry.pack(pady=10)
+
+        tb.Button(
+            self.scrollable_frame,
+            text="Daten speichern",
+            bootstyle="success",
+            width=20,
+            command=self.save_health_data
+        ).pack(pady=10)
 
     def get_entry_value(self, entry, placeholder):
         value = entry.get()
@@ -419,12 +471,13 @@ class HealthDataPage(tb.Frame):
 
     def save_health_data(self):
         print("Gesundheitsdaten gespeichert")
-        pulse = self.get_entry_value(self.children['!placeholderentry3'], "Herzfrequenz (BPM)")
-        spo2 = self.get_entry_value(self.children['!placeholderentry5'], "Sauerstoffsättigung (%)")
-        blood_pressure = self.get_entry_value(self.children['!placeholderentry2'], "Blutdruck (mmHg)")
-        temperature = self.get_entry_value(self.children['!placeholderentry'], "Körpertemperatur (°C)")
-        blood_sugar = self.get_entry_value(self.children['!placeholderentry4'], "Blutzucker")
-        pain = self.get_entry_value(self.children['!placeholderentry6'], "Schmerzen 1-10")
+
+        pulse = self.get_entry_value(self.heart_rate_entry, "Herzfrequenz (BPM)")
+        spo2 = self.get_entry_value(self.spo2_entry, "Sauerstoffsättigung (%)")
+        blood_pressure = self.get_entry_value(self.blood_pressure_entry, "Blutdruck (mmHg)")
+        temperature = self.get_entry_value(self.temperature_entry, "Körpertemperatur (°C)")
+        blood_sugar = self.get_entry_value(self.blood_sugar_entry, "Blutzucker")
+        pain = self.get_entry_value(self.pain_entry, "Schmerzen 1-10")
 
         protokoll_crud.add_health_data_to_protokoll(
             self.controller.alert_id,
@@ -514,6 +567,9 @@ class AlarmWidget(tb.Frame):
             "info": "#0dcaf0"  # Blau
         }
         return colors.get(style_name, "#ffffff")
+
+
+
 
 if __name__ == "__main__":
     app = App()

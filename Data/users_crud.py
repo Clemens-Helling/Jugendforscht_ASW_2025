@@ -175,5 +175,21 @@ def get_user_by_card_number(card_number):
     else:
         print(f"Kein Benutzer mit Karten­nummer {card_number} gefunden.")
         return None
+
+
+def get_all_users():
+    """Gibt alle Benutzer zurück."""
+    users = session.query(User).all()
+    personal_list = []
+    for user in users:
+        personal_list.append({
+            "User_ID": user.User_ID,
+            "name": user.name,
+            "last_name": user.last_name,
+            "lernbegleiter": user.lernbegleiter,
+            "karten_nummer": user.karten_nummer,
+            "permission": user.permission,
+        })
+
     return json.dumps(personal_list, ensure_ascii=False, indent=4)
 
