@@ -8,8 +8,7 @@ from Data import patient_crud, alerts_crud, protokoll_crud, users_crud
 import datetime
 
 from Data.materials_crud import add_material_to_protokoll, get_all_material_names
-from rfid import rfid
-from rfid.rfid import RFIDReader
+from rfid.rfid import read_rfid_uid
 
 
 class PlaceholderEntry(tb.Entry):
@@ -218,9 +217,9 @@ class LoginPage(tb.Frame):
         tb.Button(self, text="Anmelden", style="Custom.TButton", width=10, command=self.login).pack(pady=10)
 
     def login(self, event=None):
-        reader = RFIDReader()
+
         mbox.showinfo("Anmeldung", "Bitte Karte an das Lesegerät halten")
-        card_id = reader.read_data()
+        card_id = read_rfid_uid()
         print(f"Gelesene Karten-ID: {card_id}")
         user = users_crud.get_user_by_card_number(str(card_id))
         if user:
@@ -360,9 +359,9 @@ class ProtokollPage(tb.Frame):
         self.controller.show_frame("MaterialPage")
 
     def add_medic(self):
-        reader = RFIDReader()
+
         mbox.showinfo("Anmeldung", "Bitte Karte an das Lesegerät halten")
-        card_id = reader.read_data()
+        card_id = read_rfid_uid()
         print(f"Gelesene Karten-ID: {card_id}")
         user = users_crud.get_user_by_card_number(str(card_id))
         if user:

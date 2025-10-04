@@ -177,8 +177,9 @@ def get_user_by_card_number(card_number):
         return None
 
 
+# Python
 def get_all_users():
-    """Gibt alle Benutzer zurück."""
+    """Gibt alle Benutzer als Liste von Dicts zurück."""
     users = session.query(User).all()
     personal_list = []
     for user in users:
@@ -190,6 +191,6 @@ def get_all_users():
             "karten_nummer": user.karten_nummer,
             "permission": user.permission,
         })
+    return personal_list
 
-    return json.dumps(personal_list, ensure_ascii=False, indent=4)
-
+print(get_all_users())

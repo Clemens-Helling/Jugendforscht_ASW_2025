@@ -7,7 +7,7 @@ from tkinter import filedialog, messagebox
 from Alert import alarm
 from Data import patient_crud, alerts_crud, protokoll_crud, users_crud
 import datetime
-
+from pyprinter import Printer
 from PDF.pdf import main
 import os
 
@@ -367,6 +367,7 @@ class ElDataPage(tb.Frame):
 class UserManagementPage(tb.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
+        self.selected_user = None
         self.controller = controller
         lehrer_liste = users_crud.get_all_teachers()
         tb.Label(self, text="Benutzerverwaltung", font=("Exo 2 ExtraBold", 16)).pack(pady=20)
@@ -382,9 +383,15 @@ class UserManagementPage(tb.Frame):
         role_combobox = tb.Combobox(self, values=["Admin", "User", "Junior"])
         role_combobox.set("Rolle")
         role_combobox.pack(pady=10)
-        tb.Button(self, text="Benutzer hinzufügen", style="success", width=15, command=self.add_user).pack(pady=10)
+        self.button_frame = tb.Frame(self)
+        self.button_frame.pack(pady=10)
+        self.add_user_button = tb.Button(self, text="Benutzer hinzufügen", style="success", width=20, command=self.add_user)
+        self.add_user_button.pack(pady=10)
+        self.update_user_button = tb.Button(self, text="Benutzer aktualisieren", style="warning", width=20, command=self.update_user)
+        self.delete_user_button = tb.Button(self, text="Benutzer löschen", style="danger", width=20, command=self.delete_user)
+
         self.user_table = tb.Treeview(
-            self, columns=("Vorname", "Nachname", "Lehrkraft", "Kartennummer", "Rolle"), show="headings"
+        self, columns=("Vorname", "Nachname", "Lehrkraft", "Kartennummer", "Rolle"), show="headings"
         )
 
         self.user_table.heading("Vorname", text="Vorname")
@@ -394,24 +401,93 @@ class UserManagementPage(tb.Frame):
         self.user_table.heading("Rolle", text="Rolle")
         self.user_table.pack(pady=10, fill=BOTH, expand=True)
         self.load_users()
-
+        self.user_table.bind("<ButtonRelease-1>", self.on_row_click)
+        self.user_table.bind("<Double-1>", self.on_double_click)
     # Python
     def load_users(self):
         users = users_crud.get_all_users()
         for user in users:
-            # Alle Werte in Strings umwandeln und geschweifte Klammern ersetzen
-            safe_values = [str(v).replace("{", "(").replace("}", ")") for v in user]
-            self.user_table.insert(
-                "", "end",
-                values=safe_values
-            )
-
-        # Hier können Sie die Benutzerverwaltungsfunktionen hinzufügen
+            if isinstance(user, dict):
+                # Werte in der Reihenfolge der Spalten extrahieren
+                safe_values = [
+                    str(user.get("name", "")),
+                    str(user.get("last_name", "")),
+                    str(user.get("lernbegleiter", "")),
+                    str(user.get("karten_nummer", "")),
+                    str(user.get("permission", ""))
+                ]
+            elif isinstance(user, str):
+                safe_values = user.split(",")
+            else:
+                safe_values = [str(v) for v in user]
+            self.user_table.insert("", "end", values=safe_values)
 
 
 
     def add_user(self):
-        pass
+        first_name = self.children['!placeholderentry'].get().strip()
+        last_name = self.children['!placeholderentry2'].get().strip()
+        lernbegleiter = self.children['!combobox'].get().strip()
+        if " " in lernbegleiter:
+            lernbegleiter_first_name, lernbegleiter_last_name = lernbegleiter.split()
+            teacher = users_crud.get_teacher_by_name(lernbegleiter_first_name, lernbegleiter_last_name)
+        else:
+            teacher = users_crud.get_teacher_by_name(lernbegleiter)
+        teacher_id = teacher['teacher_id'] if teacher else None
+        card_number = self.children['!placeholderentry3'].get().strip()
+        role = self.children['!combobox2'].get().strip()
+
+        if not first_name or not last_name or lernbegleiter == "Lehrkraft" or not card_number or role == "Rolle":
+            messagebox.showerror("Fehler", "Bitte füllen Sie alle Felder aus.")
+            return
+
+        existing_user = users_crud.get_user_by_card_number(card_number)
+        if existing_user:
+            messagebox.showerror("Fehler", "Ein Benutzer mit dieser Kartennummer existiert bereits.")
+
+        users_crud.add_user(first_name, last_name, teacher_id, card_number, role)
+        messagebox.showinfo("Erfolg", "Benutzer erfolgreich hinzugefügt.")
+        self.user_table.delete(*self.user_table.get_children())
+        self.load_users()
+
+    # Python
+    def on_row_click(self, event):
+        item_id = self.user_table.identify_row(event.y)
+        if item_id:
+            self.selected_user = self.user_table.item(item_id, "values")
+            # Vorherige Buttons entfernen
+            for widget in self.button_frame.winfo_children():
+                widget.pack_forget()
+            # Buttons jetzt sichtbar machen
+            self.update_user_button.pack(in_=self.button_frame, side=LEFT, padx=5)
+            self.delete_user_button.pack(in_=self.button_frame, side=LEFT, padx=5)
+
+    # Python
+    def on_double_click(self, event):
+        # Alle Selektionen aufheben
+        for item in self.user_table.selection():
+            self.user_table.selection_remove(item)
+
+        # selected_user zurücksetzen
+        self.selected_user = None
+
+        # Buttons verstecken
+        for widget in self.button_frame.winfo_children():
+            widget.pack_forget()
+
+    def update_user(self):  # Ohne (self, event)
+        if self.selected_user:
+            print(f"Benutzer aktualisieren: {self.selected_user}")
+            # Hier deine Update-Logik
+        else:
+            print("Kein Benutzer ausgewählt")
+
+    def delete_user(self):  # Ohne (self, event)
+        if self.selected_user:
+            print(f"Benutzer löschen: {self.selected_user}")
+            # Hier deine Delete-Logik
+        else:
+            print("Kein Benutzer ausgewählt")
 
 
 
