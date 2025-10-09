@@ -51,7 +51,7 @@ def read_rfid_uid_usb(com_port=None, timeout=10):
 
                 # UID Format prüfen (XX:XX:XX:XX)
                 if line and ':' in line:
-                    return line[14:]
+                    return line[10:]
 
     except Exception as e:
         print(f"Fehler beim Lesen der UID: {e}")
@@ -85,7 +85,7 @@ def read_rfid_uid_uart(uart_port="/dev/ttyS0", baudrate=9600, timeout=10):
                 line = ser.readline().decode('utf-8', errors='ignore').strip()
 
                 if line and ':' in line:
-                    return line[14:] if len(line) > 14 else line
+                    return line[4:]
 
     except Exception as e:
         print(f"UART Fehler: {e}")
@@ -109,6 +109,4 @@ def read_rfid_uid(port=None, timeout=10):
         return read_rfid_uid_uart(uart_port, timeout=timeout)
 
 if __name__ == "__main__":
-    uid = read_rfid_uid()
-    srtp_uid = uid[4:]
-    print(srtp_uid)
+    print(read_rfid_uid())

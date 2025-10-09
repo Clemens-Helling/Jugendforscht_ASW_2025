@@ -222,7 +222,7 @@ class LoginPage(tb.Frame):
         card_id = read_rfid_uid()
         print(f"Gelesene Karten-ID: {card_id}")
         user = users_crud.get_user_by_card_number(str(card_id))
-        if user:
+        if users_crud.check_user_permisson(str(card_id), "user") or users_crud.check_user_permisson(str(card_id), "Junior") or users_crud.check_user_permisson(str(card_id), "Admin"):
             print(f"Willkommen {user['name']} {user['last_name']}!")
             self.controller.is_logged_in = True
             self.controller.show_frame("AlertsPage")

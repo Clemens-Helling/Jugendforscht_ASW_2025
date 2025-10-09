@@ -10,6 +10,7 @@ import datetime
 from pyprinter import Printer
 from PDF.pdf import main
 import os
+from rfid.rfid import read_rfid_uid
 
 
 
@@ -380,6 +381,7 @@ class UserManagementPage(tb.Frame):
         lb_combobox.pack(pady=10)
         card_number_entry = PlaceholderEntry(self, "Kartennummer")
         card_number_entry.pack(pady=10)
+        card_number_entry.bind("<FocusIn>", self.read_card_number)
         role_combobox = tb.Combobox(self, values=["Admin", "User", "Junior"])
         role_combobox.set("Rolle")
         role_combobox.pack(pady=10)
@@ -391,9 +393,10 @@ class UserManagementPage(tb.Frame):
         self.delete_user_button = tb.Button(self, text="Benutzer löschen", style="danger", width=20, command=self.delete_user)
 
         self.user_table = tb.Treeview(
-        self, columns=("Vorname", "Nachname", "Lehrkraft", "Kartennummer", "Rolle"), show="headings"
+        self, columns=("ID","Vorname", "Nachname", "Lehrkraft", "Kartennummer", "Rolle"), show="headings"
         )
 
+        self.user_table.heading("ID", text="ID")
         self.user_table.heading("Vorname", text="Vorname")
         self.user_table.heading("Nachname", text="Nachname")
         self.user_table.heading("Lehrkraft", text="Lehrkraft")
@@ -405,11 +408,13 @@ class UserManagementPage(tb.Frame):
         self.user_table.bind("<Double-1>", self.on_double_click)
     # Python
     def load_users(self):
-        users = users_crud.get_all_users()
+        self.user_table.delete(*self.user_table.get_children())
+        users = users_crud.get_all_active_users()
         for user in users:
             if isinstance(user, dict):
                 # Werte in der Reihenfolge der Spalten extrahieren
                 safe_values = [
+                    str(user.get("User_ID", "")),
                     str(user.get("name", "")),
                     str(user.get("last_name", "")),
                     str(user.get("lernbegleiter", "")),
@@ -420,6 +425,8 @@ class UserManagementPage(tb.Frame):
                 safe_values = user.split(",")
             else:
                 safe_values = [str(v) for v in user]
+                # Alle Einträge löschen
+
             self.user_table.insert("", "end", values=safe_values)
 
 
@@ -454,7 +461,25 @@ class UserManagementPage(tb.Frame):
     def on_row_click(self, event):
         item_id = self.user_table.identify_row(event.y)
         if item_id:
-            self.selected_user = self.user_table.item(item_id, "values")
+            selected_user_data = self.user_table.item(item_id, "values")
+            self.selected_user = selected_user_data[0]
+            print(self.selected_user)
+            if users_crud.get_teacher_name_by_id(selected_user_data[3]):
+                lernbegleiter_name = users_crud.get_teacher_name_by_id(selected_user_data[3])
+            else:
+                lernbegleiter_name = "Nicht zugewiesen"
+
+
+            # Daten in die Entry-Felder einsetzen
+            self.children['!placeholderentry'].delete(0, 'end')
+            self.children['!placeholderentry'].insert(0, selected_user_data[1])
+            self.children['!placeholderentry2'].delete(0, 'end')
+            self.children['!placeholderentry2'].insert(0, selected_user_data[2])
+            self.children['!combobox'].set(lernbegleiter_name)
+            self.children['!placeholderentry3'].delete(0, 'end')
+            self.children['!placeholderentry3'].insert(0, selected_user_data[4])
+            self.children['!combobox2'].set(selected_user_data[5])
+
             # Vorherige Buttons entfernen
             for widget in self.button_frame.winfo_children():
                 widget.pack_forget()
@@ -478,16 +503,44 @@ class UserManagementPage(tb.Frame):
     def update_user(self):  # Ohne (self, event)
         if self.selected_user:
             print(f"Benutzer aktualisieren: {self.selected_user}")
-            # Hier deine Update-Logik
-        else:
-            print("Kein Benutzer ausgewählt")
+            first_name = self.children['!placeholderentry'].get().strip()
+            last_name = self.children['!placeholderentry2'].get().strip()
+            lernbegleiter = self.children['!combobox'].get().strip()
+            if lernbegleiter != "Lehrkraft":
+                if " " in lernbegleiter:
+                    lernbegleiter_first_name, lernbegleiter_last_name = lernbegleiter.split()
+                    teacher = users_crud.get_teacher_by_name(lernbegleiter_first_name, lernbegleiter_last_name)
+                else:
+                    teacher = users_crud.get_teacher_by_name(lernbegleiter)
+                teacher_id = teacher['teacher_id'] if teacher else None
+            else:
+                teacher_id = None
+
+
+            card_number = self.children['!placeholderentry3'].get().strip()
+            role = self.children['!combobox2'].get().strip()
+
+            users_crud.update_user(self.selected_user, first_name , last_name, teacher_id, card_number, role)
+
 
     def delete_user(self):  # Ohne (self, event)
         if self.selected_user:
             print(f"Benutzer löschen: {self.selected_user}")
-            # Hier deine Delete-Logik
+            users_crud.delete_user(self.selected_user)
+            self.load_users()
         else:
             print("Kein Benutzer ausgewählt")
+
+
+    def read_card_number(self, event):
+
+
+        card_number = read_rfid_uid()
+        if card_number:
+            self.children['!placeholderentry3'].delete(0, 'end')
+            self.children['!placeholderentry3'].insert(0, card_number[4:])
+        else:
+            messagebox.showerror("Fehler", "Keine Kartennummer gelesen.")
 
 
 

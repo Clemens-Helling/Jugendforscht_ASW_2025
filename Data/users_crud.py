@@ -96,6 +96,18 @@ def get_teacher_by_name(first_name, last_name):
     else:
         print(f"Kein Lehrer mit dem Namen {first_name} {last_name} gefunden.")
         return None
+
+
+
+def get_teacher_name_by_id(teacher_id):
+    """Gibt den Namen eines Lehrers anhand seiner ID zurück."""
+    teacher = session.query(Teacher).filter_by(teacher_id=teacher_id).first()
+    if teacher:
+        return f"{teacher.first_name} {teacher.last_name}"
+    else:
+        print(f"Kein Lehrer mit der ID {teacher_id} gefunden.")
+        return None
+
 def transform_personal(mapping):
     role_map = {
         "sani1": ("Sani1", True),
@@ -178,9 +190,9 @@ def get_user_by_card_number(card_number):
 
 
 # Python
-def get_all_users():
+def get_all_active_users():
     """Gibt alle Benutzer als Liste von Dicts zurück."""
-    users = session.query(User).all()
+    users = session.query(User).filter(User.permission != "deactivated").all()
     personal_list = []
     for user in users:
         personal_list.append({
@@ -193,4 +205,49 @@ def get_all_users():
         })
     return personal_list
 
-print(get_all_users())
+
+def update_user(user_id, name=None, last_name=None, lernbegleiter=None, kartennummer=None, permission=None):
+    """Aktualisiert die Daten eines Benutzers."""
+    user = session.query(User).filter_by(User_ID=user_id).first()
+    if not user:
+        print(f"Kein Benutzer mit ID {user_id} gefunden.")
+        return
+
+    if name is not None:
+        user.name = name
+    if last_name is not None:
+        user.last_name = last_name
+    if lernbegleiter is not None:
+        user.lernbegleiter = lernbegleiter
+    if kartennummer is not None:
+        user.karten_nummer = kartennummer
+    if permission is not None:
+        user.permission = permission
+
+    session.commit()
+    print(f"Benutzer mit ID {user_id} aktualisiert.")
+
+def delete_user(user_id):
+    """Löscht einen Benutzer."""
+    user = session.query(User).filter_by(User_ID=user_id).first()
+    if not user:
+        print(f"Kein Benutzer mit ID {user_id} gefunden.")
+        return
+    user.permission = "deactivated"
+    session.commit()
+
+
+def check_user_permisson(card_number, required_permission):
+    """Überprüft, ob ein Benutzer die erforderliche Berechtigung hat."""
+    user = session.query(User).filter_by(karten_nummer=card_number).first()
+    if not user:
+        print(f"Kein Benutzer mit Karten­nummer {card_number} gefunden.")
+        return False
+
+    if user.permission == required_permission or user.permission == "admin":
+        return True
+    else:
+        return False
+
+if __name__ == "__main__":
+    delete_user(3)
