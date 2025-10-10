@@ -28,11 +28,21 @@ def get_material(material_name):
         return None
 
 
-def update_material_quantity(material_id, quantity):
+def add_material_quantity(material_id, quantity):
     """Aktualisiert die Menge eines Materials."""
     material = session.query(Material).filter_by(material_id=material_id).first()
     if material:
-        material.quantity = quantity
+        material.quantity = material.quantity + quantity
+        session.commit()
+        print(f"Material {material.material_name} aktualisiert.")
+    else:
+        print(f"Material mit ID {material_id} nicht gefunden.")
+
+def subtract_material_quantity(material_id, quantity):
+    """Aktualisiert die Menge eines Materials."""
+    material = session.query(Material).filter_by(material_id=material_id).first()
+    if material:
+        material.quantity = material.quantity - quantity
         session.commit()
         print(f"Material {material.material_name} aktualisiert.")
     else:

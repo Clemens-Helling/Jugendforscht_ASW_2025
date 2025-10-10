@@ -13,7 +13,6 @@ import os
 from rfid.rfid import read_rfid_uid
 
 
-
 class PlaceholderEntry(tb.Entry):
     def __init__(self, parent, placeholder, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
@@ -126,7 +125,7 @@ class AlertPage(tb.Frame):
         last_name_entry = PlaceholderEntry(self, "Nachname")
         last_name_entry.pack(pady=10)
 
-        self.birth_entry = DateEntry(self )
+        self.birth_entry = DateEntry(self)
 
         self.birth_entry.pack(pady=10)
 
@@ -137,7 +136,8 @@ class AlertPage(tb.Frame):
         symptom_combobox.pack(pady=10)
 
         alert_type_combobox = tb.Combobox(
-            self, values=["Unfall", "Erkrankung", "Sonstiges"])
+            self, values=["Unfall", "Erkrankung", "Sonstiges"]
+        )
         alert_type_combobox.set("Alarmtyp")
         alert_type_combobox.pack(pady=10)
 
@@ -152,14 +152,16 @@ class AlertPage(tb.Frame):
         )
         self.alert_without_name_var = tb.BooleanVar()
         alert_without_name = tb.Checkbutton(
-            self,
-            text="Alarm ohne Name",
-            variable=self.alert_without_name_var
+            self, text="Alarm ohne Name", variable=self.alert_without_name_var
         )
         alert_without_name.pack(pady=10)
-        tb.Button(self, text="Alarmieren", style="Custom.TButton", width=10, command=self.on_alarm_button_click).pack(
-            pady=10
-        )
+        tb.Button(
+            self,
+            text="Alarmieren",
+            style="Custom.TButton",
+            width=10,
+            command=self.on_alarm_button_click,
+        ).pack(pady=10)
 
     def on_alarm_button_click(self):
         name = self.children['!placeholderentry'].get()
@@ -182,7 +184,9 @@ class AlertPage(tb.Frame):
             alert_id = alarm.add_alert(symptom, alert_type)
             print(f"Alert ID in  {alert_id}")
             patient_crud.add_patient(name, last_name, birthday, alert_id)
-            print(f"Alarm ausgelöst für {name} {last_name} mit Symptom: {symptom} und Alarmtyp: {alert_type}")
+            print(
+                f"Alarm ausgelöst für {name} {last_name} mit Symptom: {symptom} und Alarmtyp: {alert_type}"
+            )
 
 
 class AboutPage(tb.Frame):
@@ -199,7 +203,13 @@ class AboutPage(tb.Frame):
         self.search_birthdate_entry = DateEntry(self)
         self.search_birthdate_entry.pack(pady=10)
 
-        tb.Button(self, text="Suchen", style="Custom.TButton", width=10, command=self.search_alerts).pack(pady=10)
+        tb.Button(
+            self,
+            text="Suchen",
+            style="Custom.TButton",
+            width=10,
+            command=self.search_alerts,
+        ).pack(pady=10)
 
         self.result_table = tb.Treeview(
             self, columns=("Name", "Nachname", "operation_end"), show="headings"
@@ -222,17 +232,22 @@ class AboutPage(tb.Frame):
         self.result_table.pack(side="left", fill="both", expand=True)
         self.result_table.bind("<ButtonRelease-1>", self.on_row_click)
 
-
-        self.protokoll_data_by_item = {}  # Mapping von Treeview-Item-ID zu Protokoll-Daten
+        self.protokoll_data_by_item = (
+            {}
+        )  # Mapping von Treeview-Item-ID zu Protokoll-Daten
 
     def search_alerts(self):
         for item in self.result_table.get_children():
             self.result_table.delete(item)
         self.protokoll_data_by_item.clear()
-        first_name = self.children['!placeholderentry'].get()
-        last_name = self.children['!placeholderentry2'].get().strip()
-        birth_date = datetime.datetime.strptime(self.search_birthdate_entry.entry.get(), "%d.%m.%Y").strftime("%d.%m.%Y")
-        print(f"Suche nach Protokollen für: {first_name} {last_name}, Geburtsdatum: {birth_date}")
+        first_name = self.children["!placeholderentry"].get()
+        last_name = self.children["!placeholderentry2"].get().strip()
+        birth_date = datetime.datetime.strptime(
+            self.search_birthdate_entry.entry.get(), "%d.%m.%Y"
+        ).strftime("%d.%m.%Y")
+        print(
+            f"Suche nach Protokollen für: {first_name} {last_name}, Geburtsdatum: {birth_date}"
+        )
         if not first_name or not last_name or not birth_date:
             print("Bitte füllen Sie alle Felder aus.")
             return
@@ -245,12 +260,17 @@ class AboutPage(tb.Frame):
         else:
             for protokoll in protokolls:
                 item_id = self.result_table.insert(
-                    "", "end",
+                    "",
+                    "end",
                     values=(
-                        patient_crud.get_patient_by_pseudonym(protokoll["pseudonym"])["real_name"],
-                        patient_crud.get_patient_by_pseudonym(protokoll["pseudonym"])["real_last_name"],
-                        protokoll["operation_end"]
-                    )
+                        patient_crud.get_patient_by_pseudonym(protokoll["pseudonym"])[
+                            "real_name"
+                        ],
+                        patient_crud.get_patient_by_pseudonym(protokoll["pseudonym"])[
+                            "real_last_name"
+                        ],
+                        protokoll["operation_end"],
+                    ),
                 )
                 self.protokoll_data_by_item[item_id] = protokoll
 
@@ -270,10 +290,14 @@ class DetailPage(tb.Frame):
         self.controller = controller
         self.current_protokoll = None  # Attribut initialisieren
 
-        tb.Label(self, text="Protokolldetails", font=("Exo 2 ExtraBold", 16)).pack(pady=20)
+        tb.Label(self, text="Protokolldetails", font=("Exo 2 ExtraBold", 16)).pack(
+            pady=20
+        )
         self.detail_label = tb.Label(self, text="Details werden hier angezeigt")
         self.detail_label.pack(pady=10)
-        self.pdf_button = tb.Button(self, text="Als PDF speichern", command=self.save_as_pdf)
+        self.pdf_button = tb.Button(
+            self, text="Als PDF speichern", command=self.save_as_pdf
+        )
         self.pdf_button.pack(pady=10)
         self.el_data_button = tb.Button(self, text="Einsatzleit-Protokol", command= self.save_el_data)
         self.el_data_button.pack(pady=10)
@@ -296,7 +320,6 @@ class DetailPage(tb.Frame):
 
         alert_id = self.current_protokoll.get("alert_id")
 
-
         if alert_id:
 
             self.current_protokoll["alert_id"] = alert_id
@@ -310,7 +333,9 @@ class DetailPage(tb.Frame):
                 if messagebox.askyesno("Öffnen", "PDF wurde erstellt. Möchten Sie die Datei öffnen?"):
                     os.startfile(file_path)
         else:
-            print("Warnung: Keine alert_id gefunden. PDF wird trotzdem mit vorhanden Daten erstellt.")
+            print(
+                "Warnung: Keine alert_id gefunden. PDF wird trotzdem mit vorhanden Daten erstellt."
+            )
 
     def save_el_data(self):
         self.controller.selected_alert = self.current_protokoll.get("alert_id")

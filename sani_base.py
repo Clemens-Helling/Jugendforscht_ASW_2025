@@ -4,7 +4,7 @@ from ttkbootstrap.constants import *
 import tkinter.font as tkFont
 import tkinter.messagebox as mbox
 from Alert import alarm
-from Data import patient_crud, alerts_crud, protokoll_crud, users_crud
+from Data import patient_crud, alerts_crud, protokoll_crud, users_crud, materials_crud
 import datetime
 from Alert import alarm
 from Data import materials_crud
@@ -407,6 +407,7 @@ class MaterialPage(tb.Frame):
     def save_materials(self):
         for item in self.material_treeview.get_children():
             material, menge = self.material_treeview.item(item, "values")
+<<<<<<< HEAD
             db_quantity = materials_crud.get_material(material)["quantity"]
             new_quantity = db_quantity - int(menge)
             materials_crud.update_material_quantity(materials_crud.get_material(material)["material_id"], new_quantity)
@@ -415,6 +416,11 @@ class MaterialPage(tb.Frame):
             if low_materials:
                 for mat in low_materials:
                     alarm.send_message(f"Niedriger Bestand: {mat['material_name']} (Bestand: {mat['quantity']}, Mindestbestand: {mat['minimum_stock']})")
+=======
+            material_id = materials_crud.get_material_id_by_name(material)
+            materials_crud.subtract_material_quantity(material_id, int(menge))
+            add_material_to_protokoll(self.controller.alert_id, material, int(menge))
+>>>>>>> origin/lagersystem
 
         print("Materialien gespeichert")
         protokoll_crud.close_alert(self.controller.alert_id)
