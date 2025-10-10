@@ -93,3 +93,21 @@ def get_all_material_names():
     materials = session.query(Material).all()
     return [f"{m.material_name}" for m in materials]
 print(get_materials_by_protokoll(protokoll_id=23))
+
+def set_minimum_stock(material_id, minimum_stock):
+    """Setzt den Mindestbestand eines Materials."""
+    material = session.query(Material).filter_by(material_id=material_id).first()
+    if material:
+        material.minimum_stock = minimum_stock
+        session.commit()
+        print(f"Mindestbestand von Material {material.material_name} auf {minimum_stock} gesetzt.")
+    else:
+        print(f"Material mit ID {material_id} nicht gefunden.")
+
+def check_low_stock():
+    """Überprüft alle Materialien auf Mindestbestand und gibt eine Liste der Materialien zurück, die unter dem Mindestbestand liegen."""
+    low_stock_materials = session.query(Material).filter(Material.quantity <= Material.minimum_stock).all()
+    result = []
+    for material in low_stock_materials:
+        result.append({'material_name': material.material_name, 'quantity': material.quantity, 'minimum_stock': material.minimum_stock})
+    return result

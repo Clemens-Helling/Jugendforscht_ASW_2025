@@ -24,6 +24,22 @@ def add_alert(symtom, alert_type):
         alert_id = database.add_alert(symtom, alert_type )
         print(f"Alert ID in alarm {alert_id}")
         requests.post(
-            "https://ntfy.sh/Rfaond6DyhQPMo8P", data=symtom.encode(encoding="utf-8")
-               )
+            "https://ntfy.sh/Rfaond6DyhQPMo8P", data=symtom.encode(encoding="utf-8"),     headers={
+        "Title": "Wenig lagerbestand",
+        "Priority": "urgent",
+        "Tags": "warning"
+    })
         return alert_id
+
+def send_message(message):
+    """Sendet eine Nachricht an den NTFY-Dienst.
+
+    Parameters
+    ----------
+    message : str
+        Nachricht, die gesendet werden soll.
+    """
+    requests.post(
+        "https://ntfy.sh/2sISQuW9tQgMpCmS", data=message.encode(encoding="utf-8")
+           )
+    print("Nachricht gesendet")

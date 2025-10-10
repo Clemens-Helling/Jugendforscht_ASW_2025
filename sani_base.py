@@ -6,9 +6,8 @@ import tkinter.messagebox as mbox
 from Alert import alarm
 from Data import patient_crud, alerts_crud, protokoll_crud, users_crud
 import datetime
-
-from Data.materials_crud import add_material_to_protokoll, get_all_material_names
-
+from Alert import alarm
+from Data import materials_crud
 
 class PlaceholderEntry(tb.Entry):
     def __init__(self, parent, placeholder, *args, **kwargs):
@@ -300,6 +299,7 @@ class ProtokollPage(tb.Frame):
         )
         self.teacher_combobox.set("Lehrer")
         self.teacher_combobox.pack(pady=10)
+        self.teacher_combobox.bind("<KeyRelease>", self.filter_teachers)
 
         self.measure_combobox = tb.Combobox(
             self, values=["Maßnahme 1", "Maßnahme 2", "Maßnahme 3"]
@@ -334,6 +334,21 @@ class ProtokollPage(tb.Frame):
         mbox.showinfo("Anmeldung", "Bitte Karte an das Lesegerät halten")
         print("Sanitäter hinzugefügt")
 
+    def filter_teachers(self, event):
+        # Benutzereingabe abrufen
+        search_term = self.teacher_combobox.get().lower()
+
+        # Alle Lehrer abrufen und filtern
+        all_teachers = users_crud.get_all_teachers()
+        filtered_teachers = [teacher for teacher in all_teachers if search_term in teacher.lower()]
+
+        # Combobox-Werte aktualisieren
+        self.teacher_combobox["values"] = filtered_teachers
+
+        # Dropdown anzeigen, wenn es Ergebnisse gibt
+        if filtered_teachers:
+            self.teacher_combobox.event_generate("<Down>")
+
 
 
 
@@ -363,7 +378,7 @@ class MaterialPage(tb.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
-        material_list= get_all_material_names()
+        material_list= materials_crud.get_all_material_names()
         tb.Label(self, text="Material", font=("Exo 2 ExtraBold", 16)).pack(pady=20)
         material_combobox = tb.Combobox(
             self, values= material_list
@@ -392,7 +407,15 @@ class MaterialPage(tb.Frame):
     def save_materials(self):
         for item in self.material_treeview.get_children():
             material, menge = self.material_treeview.item(item, "values")
-            add_material_to_protokoll(self.controller.alert_id, material, int(menge))
+            db_quantity = materials_crud.get_material(material)["quantity"]
+            new_quantity = db_quantity - int(menge)
+            materials_crud.update_material_quantity(materials_crud.get_material(material)["material_id"], new_quantity)
+            materials_crud.add_material_to_protokoll(self.controller.alert_id, material, int(menge))
+            low_materials = materials_crud.check_low_stock()
+            if low_materials:
+                for mat in low_materials:
+                    alarm.send_message(f"Niedriger Bestand: {mat['material_name']} (Bestand: {mat['quantity']}, Mindestbestand: {mat['minimum_stock']})")
+
         print("Materialien gespeichert")
         protokoll_crud.close_alert(self.controller.alert_id)
         self.controller.show_frame("AlertsPage")
@@ -413,7 +436,7 @@ class HealthDataPage(tb.Frame):
         # Window ins Canvas einfügen (center!)
         window = canvas.create_window((0, 0), window=self.scrollable_frame, anchor="n")
 
-        # Scrollregion aktualisieren, wenn sich Frame-Größe ändert
+
         def on_configure(event):
             canvas.configure(scrollregion=canvas.bbox("all"))
             # Frame immer an Canvas-Breite anpassen
