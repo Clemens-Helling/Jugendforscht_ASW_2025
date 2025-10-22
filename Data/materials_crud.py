@@ -1,12 +1,13 @@
-from Data.setup_database import session
-from Data.models import Material, ProtokollMaterials, Protokoll
 import datetime
 
+from Data.models import Material, Protokoll, ProtokollMaterials
+from Data.setup_database import session
 
-def add_material(material_name, quantity, expires_at):
+
+def add_material(material_name, quantity, min_qunataty, expires_at):
     """Fügt ein Material hinzu."""
     material = Material(
-        material_name=material_name, quantity=quantity, expires_at=expires_at
+        material_name=material_name, quantity=quantity, expires_at=expires_at, minimum_stock=min_qunataty
     )
     session.add(material)
     session.commit()
@@ -38,6 +39,7 @@ def add_material_quantity(material_id, quantity):
     else:
         print(f"Material mit ID {material_id} nicht gefunden.")
 
+
 def subtract_material_quantity(material_id, quantity):
     """Aktualisiert die Menge eines Materials."""
     material = session.query(Material).filter_by(material_id=material_id).first()
@@ -59,6 +61,7 @@ def update_material_expiration(material_id, expires_at):
     else:
         print(f"Material mit ID {material_id} nicht gefunden.")
 
+
 def delete_material(material_id):
     """Löscht ein Material."""
     material = session.query(Material).filter_by(material_id=material_id).first()
@@ -78,31 +81,41 @@ def add_material_to_protokoll(alert_id, material_name, quantity):
         print(f"Kein Protokoll mit alert_id {alert_id} gefunden.")
         return
     protokoll_material = ProtokollMaterials(
-        protokoll_id=protokoll.protokoll_id, material_id= material.material_id, quantity=quantity
+        protokoll_id=protokoll.protokoll_id,
+        material_id=material.material_id,
+        quantity=quantity,
     )
     session.add(protokoll_material)
     session.commit()
 
-    print(f"Material ID {material.material_id} zu Protokoll ID {protokoll.protokoll_id} hinzugefügt.")
+    print(
+        f"Material ID {material.material_id} zu Protokoll ID {protokoll.protokoll_id} hinzugefügt."
+    )
+
 
 def get_materials_by_protokoll(protokoll_id):
     """Gibt alle Materialien eines Protokolls zurück."""
     materials = (
-        session.query(ProtokollMaterials)
-        .filter_by(protokoll_id=protokoll_id)
-        .all()
+        session.query(ProtokollMaterials).filter_by(protokoll_id=protokoll_id).all()
     )
     result = []
     for material in materials:
-        mat = session.query(Material).filter_by(material_id=material.material_id).first()
+        mat = (
+            session.query(Material).filter_by(material_id=material.material_id).first()
+        )
         if mat:
-            result.append({'name': mat.material_name, 'quantity': material.quantity})
+            result.append({"name": mat.material_name, "quantity": material.quantity})
     return result
+
+
 def get_all_material_names():
     """Gibt alle Materialien zurück."""
     materials = session.query(Material).all()
     return [f"{m.material_name}" for m in materials]
+
+
 print(get_materials_by_protokoll(protokoll_id=23))
+
 
 def set_minimum_stock(material_id, minimum_stock):
     """Setzt den Mindestbestand eines Materials."""
@@ -110,14 +123,44 @@ def set_minimum_stock(material_id, minimum_stock):
     if material:
         material.minimum_stock = minimum_stock
         session.commit()
-        print(f"Mindestbestand von Material {material.material_name} auf {minimum_stock} gesetzt.")
+        print(
+            f"Mindestbestand von Material {material.material_name} auf {minimum_stock} gesetzt."
+        )
     else:
         print(f"Material mit ID {material_id} nicht gefunden.")
 
+
 def check_low_stock():
     """Überprüft alle Materialien auf Mindestbestand und gibt eine Liste der Materialien zurück, die unter dem Mindestbestand liegen."""
-    low_stock_materials = session.query(Material).filter(Material.quantity <= Material.minimum_stock).all()
+    low_stock_materials = (
+        session.query(Material)
+        .filter(Material.quantity <= Material.minimum_stock)
+        .all()
+    )
     result = []
     for material in low_stock_materials:
-        result.append({'material_name': material.material_name, 'quantity': material.quantity, 'minimum_stock': material.minimum_stock})
+        result.append(
+            {
+                "material_name": material.material_name,
+                "quantity": material.quantity,
+                "minimum_stock": material.minimum_stock,
+            }
+        )
+    return result
+
+
+def get_all_materials():
+    """Gibt alle Materialien zurück."""
+    materials = session.query(Material).all()
+    result = []
+    for material in materials:
+        result.append(
+            {
+                "material_id": material.material_id,
+                "material_name": material.material_name,
+                "quantity": material.quantity,
+                "expires_at": material.expires_at,
+                "minimum_stock": material.minimum_stock,
+            }
+        )
     return result

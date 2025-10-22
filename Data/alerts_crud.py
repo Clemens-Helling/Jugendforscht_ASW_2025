@@ -1,11 +1,15 @@
-from Data.setup_database import session
-from Data.models import Alarmierung, Protokoll
-from datetime import datetime, UTC
+from datetime import UTC, datetime
+
 import pytz
 
+from Data.models import Alarmierung, Protokoll
+from Data.setup_database import session
+
 utc_time = datetime.now(UTC)
-local_time = utc_time.astimezone(pytz.timezone('Europe/Berlin'))
+local_time = utc_time.astimezone(pytz.timezone("Europe/Berlin"))
 print(local_time)
+
+
 def add_alert(symptom, alert_type):
     alert = Alarmierung(
         symptom=symptom, alert_type=alert_type, alert_received=datetime.now()
@@ -44,13 +48,19 @@ def get_all_active_alerts():
     active_alerts = []
 
     for protokoll in protokolls:
-        alert = session.query(Alarmierung).filter(Alarmierung.alert_id == protokoll.alert_id).first()
+        alert = (
+            session.query(Alarmierung)
+            .filter(Alarmierung.alert_id == protokoll.alert_id)
+            .first()
+        )
         if alert:
-            active_alerts.append({
-                "id": alert.alert_id,
-                "alert_received": alert.alert_received,
-                "alert_type": alert.alert_type,
-                "symptom": alert.symptom,
-            })
+            active_alerts.append(
+                {
+                    "id": alert.alert_id,
+                    "alert_received": alert.alert_received,
+                    "alert_type": alert.alert_type,
+                    "symptom": alert.symptom,
+                }
+            )
 
     return active_alerts

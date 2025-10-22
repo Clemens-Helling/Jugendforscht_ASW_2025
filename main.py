@@ -5,13 +5,8 @@ import ttkbootstrap as ttkb
 from darkdetect import theme
 
 from Alert.alarm import alarm
-from Data.setup_database import (
-    add_accsess_key,
-    add_el_data,
-    add_user,
-    delete_user,
-    search_alerts,
-)
+from Data.setup_database import (add_accsess_key, add_el_data, add_user,
+                                 delete_user, search_alerts)
 
 
 class AlarmApp(tk.Tk):

@@ -1,6 +1,8 @@
+import time
+
 import serial
 import serial.tools.list_ports
-import time
+
 
 def find_pico_port():
     """Findet automatisch den COM-Port des Raspberry Pi Pico"""
@@ -47,19 +49,18 @@ def read_rfid_uid(com_port=None, timeout=10):
                 return None
 
             if ser.in_waiting > 0:
-                line = ser.readline().decode('utf-8', errors='ignore').strip()
+                line = ser.readline().decode("utf-8", errors="ignore").strip()
 
                 # UID Format prüfen (XX:XX:XX:XX)
-                if line and ':' in line:
+                if line and ":" in line:
                     return line
 
     except Exception as e:
         print(f"Fehler beim Lesen der UID: {e}")
         return None
     finally:
-        if 'ser' in locals() and ser.is_open:
+        if "ser" in locals() and ser.is_open:
             ser.close()
-
 
 
 if __name__ == "__main__":

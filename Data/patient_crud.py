@@ -1,10 +1,13 @@
+import uuid
+
 from Data.crypto import decrypt, encrypt
 from Data.models import Patient, Protokoll
 from Data.setup_database import session
-import uuid
+
 
 def clean_name(name):
     return name.replace(" ", "").lower()
+
 
 def generate_unique_pseudonym():
     while True:
@@ -28,7 +31,6 @@ def is_name_in_patient(real_name, real_last_name, birth_day=None):
     )
     if patient:
         return patient
-
 
 
 def is_uuid_in_patient(pseudonym):
@@ -83,6 +85,7 @@ def get_patient_by_pseudonym(pseudonym):
         print("Kein Patient mit diesem Pseudonym gefunden.")
         return None
 
+
 def get_pseudonym_by_name(real_name, real_last_name, birth_day):
     """Gibt das Pseudonym eines Patienten anhand seines Namens und Geburtsdatums zurück."""
     patient = is_name_in_patient(real_name, real_last_name, birth_day)
@@ -91,4 +94,6 @@ def get_pseudonym_by_name(real_name, real_last_name, birth_day):
     else:
         print("Kein Patient mit diesen Daten gefunden.")
         return None
+
+
 print(get_pseudonym_by_name("Clemens", "Helling", "17.12.2010"))

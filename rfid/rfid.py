@@ -1,7 +1,10 @@
+import platform
+import time
+
 import serial
 import serial.tools.list_ports
-import time
-import platform
+
+
 def find_pico_port():
     """Findet automatisch den COM-Port des Raspberry Pi Pico"""
     ports = serial.tools.list_ports.comports()
@@ -47,17 +50,17 @@ def read_rfid_uid_usb(com_port=None, timeout=10):
                 return None
 
             if ser.in_waiting > 0:
-                line = ser.readline().decode('utf-8', errors='ignore').strip()
+                line = ser.readline().decode("utf-8", errors="ignore").strip()
 
                 # UID Format prüfen (XX:XX:XX:XX)
-                if line and ':' in line:
-                    return line[10:]
+                if line and ":" in line:
+                    return line[6:]
 
     except Exception as e:
         print(f"Fehler beim Lesen der UID: {e}")
         return None
     finally:
-        if 'ser' in locals() and ser.is_open:
+        if "ser" in locals() and ser.is_open:
             ser.close()
 
 
@@ -67,7 +70,7 @@ def read_rfid_uid_uart(uart_port="/dev/ttyS0", baudrate=9600, timeout=10):
 
     Args:
         uart_port: UART-Port (/dev/serial0 oder /dev/ttyAMA0)
-        baudrate: Baudrate (Standard: 115200)
+        baudrate: Baudrate (Standard: 9600)
         timeout: Timeout in Sekunden
 
     Returns:
@@ -75,24 +78,42 @@ def read_rfid_uid_uart(uart_port="/dev/ttyS0", baudrate=9600, timeout=10):
     """
     try:
         ser = serial.Serial(uart_port, baudrate, timeout=1)
+        ser.flush()
+        print("Warte auf RFID-Daten...")
         start_time = time.time()
 
         while True:
+            # Timeout prüfen
             if time.time() - start_time > timeout:
+                print("Timeout erreicht")
                 return None
 
             if ser.in_waiting > 0:
-                line = ser.readline().decode('utf-8', errors='ignore').strip()
+                try:
+                    # Versuche Zeile zu lesen und zu dekodieren
+                    data = ser.readline().decode('utf-8').rstrip()
+                    print(f"Empfangen: {data}")
 
-                if line and ':' in line:
-                    return line[4:]
+
+
+                    return data
+
+                except UnicodeDecodeError:
+                    # Falls UTF-8 Dekodierung fehlschlägt, zeige rohe Bytes
+                    raw_data = ser.readline()
+                    print(f"Empfangen (raw bytes): {raw_data}")
+                except Exception as e:
+                    print(f"Fehler beim Empfangen: {e}")
+
+            time.sleep(0.1)
 
     except Exception as e:
         print(f"UART Fehler: {e}")
         return None
     finally:
-        if 'ser' in locals() and ser.is_open:
+        if "ser" in locals() and ser.is_open:
             ser.close()
+            print("Serielle Verbindung geschlossen")
 
 
 def read_rfid_uid(port=None, timeout=10):
@@ -107,6 +128,7 @@ def read_rfid_uid(port=None, timeout=10):
         print(platform.system())
         uart_port = port or "/dev/serial0"
         return read_rfid_uid_uart(uart_port, timeout=timeout)
+
 
 if __name__ == "__main__":
     print(read_rfid_uid())

@@ -1,7 +1,8 @@
-from Data.setup_database import session
-from Data.models import User, SaniProtokoll, Protokoll, Teacher
 import datetime
 import json
+
+from Data.models import Protokoll, SaniProtokoll, Teacher, User
+from Data.setup_database import session
 
 
 def add_user(name, last_name, lernbegleiter, kartennummer, permission):
@@ -78,14 +79,20 @@ def add_teacher(first_name, last_name, house):
     session.commit()
     print(f"Lehrer {first_name} {last_name} hinzugefügt.")
 
+
 def get_all_teachers():
     """Gibt alle Lehrer zurück."""
     teachers = session.query(Teacher).all()
     return [f"{l.first_name} {l.last_name}" for l in teachers]
 
+
 def get_teacher_by_name(first_name, last_name):
     """Gibt einen Lehrer anhand seines Namens zurück."""
-    teacher = session.query(Teacher).filter_by(first_name=first_name, last_name=last_name).first()
+    teacher = (
+        session.query(Teacher)
+        .filter_by(first_name=first_name, last_name=last_name)
+        .first()
+    )
     if teacher:
         return {
             "teacher_id": teacher.teacher_id,
@@ -98,7 +105,6 @@ def get_teacher_by_name(first_name, last_name):
         return None
 
 
-
 def get_teacher_name_by_id(teacher_id):
     """Gibt den Namen eines Lehrers anhand seiner ID zurück."""
     teacher = session.query(Teacher).filter_by(teacher_id=teacher_id).first()
@@ -107,6 +113,7 @@ def get_teacher_name_by_id(teacher_id):
     else:
         print(f"Kein Lehrer mit der ID {teacher_id} gefunden.")
         return None
+
 
 def transform_personal(mapping):
     role_map = {
@@ -126,6 +133,7 @@ def transform_personal(mapping):
 
     return result
 
+
 def get_medic_names_by_alert_id(alert_id):
     """Gibt die Namen der Sanis und des Operationsmanagers anhand der Alert-ID zurück."""
     protokoll = session.query(Protokoll).filter_by(alert_id=alert_id).first()
@@ -144,14 +152,21 @@ def get_medic_names_by_alert_id(alert_id):
 
     sani1 = session.query(User).filter_by(User_ID=sani_protokoll.sani1).first()
     sani2 = session.query(User).filter_by(User_ID=sani_protokoll.sani2).first()
-    operationsmanager = session.query(User).filter_by(User_ID=sani_protokoll.operationsmanager).first()
+    operationsmanager = (
+        session.query(User).filter_by(User_ID=sani_protokoll.operationsmanager).first()
+    )
 
     inputData = {
         "sani1": f"{sani1.name} {sani1.last_name}" if sani1 else None,
         "sani2": f"{sani2.name} {sani2.last_name}" if sani2 else None,
-        "operationsmanager": f"{operationsmanager.name} {operationsmanager.last_name}" if operationsmanager else None,
+        "operationsmanager": (
+            f"{operationsmanager.name} {operationsmanager.last_name}"
+            if operationsmanager
+            else None
+        ),
     }
     personal_list = transform_personal(inputData)
+
 
 def get_sani_protokoll_id_by_alert_id(alert_id):
     """Gibt die SaniProtokoll_ID anhand der Alert-ID zurück."""
@@ -195,18 +210,27 @@ def get_all_active_users():
     users = session.query(User).filter(User.permission != "deactivated").all()
     personal_list = []
     for user in users:
-        personal_list.append({
-            "User_ID": user.User_ID,
-            "name": user.name,
-            "last_name": user.last_name,
-            "lernbegleiter": user.lernbegleiter,
-            "karten_nummer": user.karten_nummer,
-            "permission": user.permission,
-        })
+        personal_list.append(
+            {
+                "User_ID": user.User_ID,
+                "name": user.name,
+                "last_name": user.last_name,
+                "lernbegleiter": user.lernbegleiter,
+                "karten_nummer": user.karten_nummer,
+                "permission": user.permission,
+            }
+        )
     return personal_list
 
 
-def update_user(user_id, name=None, last_name=None, lernbegleiter=None, kartennummer=None, permission=None):
+def update_user(
+    user_id,
+    name=None,
+    last_name=None,
+    lernbegleiter=None,
+    kartennummer=None,
+    permission=None,
+):
     """Aktualisiert die Daten eines Benutzers."""
     user = session.query(User).filter_by(User_ID=user_id).first()
     if not user:
@@ -226,6 +250,7 @@ def update_user(user_id, name=None, last_name=None, lernbegleiter=None, kartennu
 
     session.commit()
     print(f"Benutzer mit ID {user_id} aktualisiert.")
+
 
 def delete_user(user_id):
     """Löscht einen Benutzer."""
@@ -248,6 +273,7 @@ def check_user_permisson(card_number, required_permission):
         return True
     else:
         return False
+
 
 if __name__ == "__main__":
     delete_user(3)

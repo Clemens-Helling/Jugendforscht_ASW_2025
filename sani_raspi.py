@@ -1,15 +1,35 @@
+import datetime
+import tkinter.font as tkFont
+import tkinter.messagebox as mbox
+
 import ttkbootstrap as tb
 from ttkbootstrap import DateEntry
 from ttkbootstrap.constants import *
-import tkinter.font as tkFont
-import tkinter.messagebox as mbox
-from Alert import alarm
-from Data import patient_crud, alerts_crud, protokoll_crud, users_crud
-import datetime
 
-from Data.materials_crud import add_material_to_protokoll, get_all_material_names
+from Alert import alarm
+from Data import alerts_crud, patient_crud, protokoll_crud, users_crud
+from Data.materials_crud import (add_material_to_protokoll,
+                                 get_all_material_names)
 from rfid.rfid import read_rfid_uid
 
+class ScrollableFrame(tb.Frame):
+    def __init__(self, parent, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
+
+        canvas = tb.Canvas(self, borderwidth=0)
+        scrollbar = tb.Scrollbar(self, orient="vertical", command=canvas.yview)
+        self.scrollable_frame = tb.Frame(canvas)
+
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
 
 class PlaceholderEntry(tb.Entry):
     def __init__(self, parent, placeholder, *args, **kwargs):
@@ -32,7 +52,6 @@ class PlaceholderEntry(tb.Entry):
             self["foreground"] = "grey"
 
 
-
 class App(tb.Window):
     def __init__(self):
         super().__init__(themename="sanilink-light")
@@ -40,7 +59,6 @@ class App(tb.Window):
         self.geometry("800x480")
 
         # Icon für Fenster und Taskleiste setzen
-
 
         # Zusätzlich für Windows-Taskleiste
 
@@ -68,11 +86,6 @@ class App(tb.Window):
             style="Custom.TLabel",
         ).pack(side=LEFT, padx=5, pady=5)
 
-
-
-
-
-
         tb.Button(
             self.navbar,
             text="Alarme",
@@ -80,10 +93,9 @@ class App(tb.Window):
             command=lambda: self.show_frame("AlertsPage"),
         ).pack(side=LEFT, padx=5, pady=5)
 
-
-        tb.Button(self.navbar, text="Beenden", style="danger", command=self.destroy).pack(
-            side=RIGHT, padx=5, pady=5
-        )
+        tb.Button(
+            self.navbar, text="Beenden", style="danger", command=self.destroy
+        ).pack(side=RIGHT, padx=5, pady=5)
         tb.Button(self.navbar, text="Logout", style="danger", command=self.logout).pack(
             side=RIGHT, padx=5, pady=5
         )
@@ -100,7 +112,15 @@ class App(tb.Window):
         self.frames = {}
 
         # Seiten initialisieren und in dict speichern
-        for F in (AlertPage, LoginPage, AlertsPage, ProtokollPage, RegisterPatientPage, HealthDataPage, MaterialPage):
+        for F in (
+            AlertPage,
+            LoginPage,
+            AlertsPage,
+            ProtokollPage,
+            RegisterPatientPage,
+            HealthDataPage,
+            MaterialPage,
+        ):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -110,8 +130,6 @@ class App(tb.Window):
         # Startseite anzeigen
         self.show_frame("LoginPage")
 
-
-
     def show_frame(self, page_name):
         # Überprüfe, ob der Benutzer eingeloggt ist, wenn er auf geschützte Seiten zugreifen möchte
         if page_name != "LoginPage" and not self.is_logged_in:
@@ -120,6 +138,7 @@ class App(tb.Window):
 
         frame = self.frames[page_name]
         frame.tkraise()
+
     def logout(self):
         self.is_logged_in = False
         self.current_sani1 = None
@@ -143,7 +162,7 @@ class AlertPage(tb.Frame):
         last_name_entry = PlaceholderEntry(self, "Nachname")
         last_name_entry.pack(pady=10)
 
-        self.birth_entry = DateEntry(self )
+        self.birth_entry = DateEntry(self)
 
         self.birth_entry.pack(pady=10)
 
@@ -154,7 +173,8 @@ class AlertPage(tb.Frame):
         symptom_combobox.pack(pady=10)
 
         alert_type_combobox = tb.Combobox(
-            self, values=["Unfall", "Erkrankung", "Sonstiges"])
+            self, values=["Unfall", "Erkrankung", "Sonstiges"]
+        )
         alert_type_combobox.set("Alarmtyp")
         alert_type_combobox.pack(pady=10)
 
@@ -169,21 +189,23 @@ class AlertPage(tb.Frame):
         )
         self.alert_without_name_var = tb.BooleanVar()
         alert_without_name = tb.Checkbutton(
-            self,
-            text="Alarm ohne Name",
-            variable=self.alert_without_name_var
+            self, text="Alarm ohne Name", variable=self.alert_without_name_var
         )
         alert_without_name.pack(pady=10)
-        tb.Button(self, text="Alarmieren", style="Custom.TButton", width=10, command=self.on_alarm_button_click).pack(
-            pady=10
-        )
+        tb.Button(
+            self,
+            text="Alarmieren",
+            style="Custom.TButton",
+            width=10,
+            command=self.on_alarm_button_click,
+        ).pack(pady=10)
 
     def on_alarm_button_click(self):
-        name = self.children['!placeholderentry'].get()
-        last_name = self.children['!placeholderentry2'].get()
+        name = self.children["!placeholderentry"].get()
+        last_name = self.children["!placeholderentry2"].get()
 
-        symptom = self.children['!combobox'].get()
-        alert_type = self.children['!combobox2'].get()
+        symptom = self.children["!combobox"].get()
+        alert_type = self.children["!combobox2"].get()
         is_alert_without_name = self.alert_without_name_var.get()
 
         if symptom == "Symptome" or alert_type == "Alarmtyp":
@@ -193,17 +215,18 @@ class AlertPage(tb.Frame):
         if is_alert_without_name:
             alert_id = alarm.add_alert(symptom, alert_type)
 
-
             protokoll_crud.update_status(alert_id, "ohne Name")
             print("Alarm ohne Name ausgelöst.")
         else:
-            birthday = datetime.datetime.strptime(self.birth_entry.entry.get(), "%d.%m.%Y").strftime("%d.%m.%Y")
+            birthday = datetime.datetime.strptime(
+                self.birth_entry.entry.get(), "%d.%m.%Y"
+            ).strftime("%d.%m.%Y")
             alert_id = alarm.add_alert(symptom, alert_type)
             print(f"Alert ID in  {alert_id}")
             patient_crud.add_patient(name, last_name, birthday, alert_id)
-            print(f"Alarm ausgelöst für {name} {last_name} mit Symptom: {symptom} und Alarmtyp: {alert_type}")
-
-
+            print(
+                f"Alarm ausgelöst für {name} {last_name} mit Symptom: {symptom} und Alarmtyp: {alert_type}"
+            )
 
 
 class LoginPage(tb.Frame):
@@ -212,9 +235,9 @@ class LoginPage(tb.Frame):
         self.controller = controller
         tb.Label(self, text="Login", font=("Exo 2 ExtraBold", 16)).pack(pady=20)
 
-
-
-        tb.Button(self, text="Anmelden", style="Custom.TButton", width=10, command=self.login).pack(pady=10)
+        tb.Button(
+            self, text="Anmelden", style="Custom.TButton", width=10, command=self.login
+        ).pack(pady=10)
 
     def login(self, event=None):
 
@@ -223,7 +246,11 @@ class LoginPage(tb.Frame):
         print(f"Gelesene Karten-ID: {card_id}")
 
         user = users_crud.get_user_by_card_number(str(card_id))
-        if users_crud.check_user_permisson(str(card_id), "user") or users_crud.check_user_permisson(str(card_id), "Junior") or users_crud.check_user_permisson(str(card_id), "Admin"):
+        if (
+            users_crud.check_user_permisson(str(card_id), "User")
+            or users_crud.check_user_permisson(str(card_id), "Junior")
+            or users_crud.check_user_permisson(str(card_id), "Admin")
+        ):
             print(f"Willkommen {user['name']} {user['last_name']}!")
             self.controller.is_logged_in = True
             self.controller.show_frame("AlertsPage")
@@ -231,7 +258,6 @@ class LoginPage(tb.Frame):
             return
         else:
             print("Karte nicht erkannt.")
-
 
 
 class AlertsPage(tb.Frame):
@@ -247,10 +273,7 @@ class AlertsPage(tb.Frame):
 
         # Refresh-Button
         tb.Button(
-            self,
-            text="Aktualisieren",
-            bootstyle="secondary",
-            command=self.load_alerts
+            self, text="Aktualisieren", bootstyle="secondary", command=self.load_alerts
         ).pack(side=BOTTOM, pady=10)
 
         # Alarme laden
@@ -271,7 +294,7 @@ class AlertsPage(tb.Frame):
                 self.alerts_frame,
                 text="Keine aktiven Alarme vorhanden",
                 font=("Exo 2", 16),
-                bootstyle="secondary"
+                bootstyle="secondary",
             ).pack(expand=True)
             return
 
@@ -286,7 +309,7 @@ class AlertsPage(tb.Frame):
                 controller=self.controller,
                 alert_id=alert["id"],
                 symptom=alert["symptom"],
-                alert_type=alert["alert_type"]
+                alert_type=alert["alert_type"],
             )
 
             # Grid-Layout berechnen (4 Spalten)
@@ -301,28 +324,45 @@ class AlertsPage(tb.Frame):
             widget.place(relx=relx, rely=rely, relwidth=0.4, relheight=0.5)
 
 
-
 class ProtokollPage(tb.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
         tb.Label(self, text="Protokoll", font=("Exo 2 ExtraBold", 16)).pack(pady=20)
-        lehrer_liste = users_crud.get_all_teachers()  # z.B. ["Herr Müller", "Frau Schmidt"]
+        lehrer_liste = (
+            users_crud.get_all_teachers()
+        )  # z.B. ["Herr Müller", "Frau Schmidt"]
 
-        self.teacher_combobox = tb.Combobox(
-            self, values=lehrer_liste
-        )
+        self.teacher_combobox = tb.Combobox(self, values=lehrer_liste)
         self.teacher_combobox.set("Lehrer")
         self.teacher_combobox.pack(pady=10)
 
         self.measure_combobox = tb.Combobox(
-            self, values=["Maßnahme 1", "Maßnahme 2", "Maßnahme 3"]
+            self, values=["Tee", "Wundversorgung", "Rettungsdienst", "Traubenzucker"]
         )
         self.measure_combobox.set("Maßnahme")
         self.measure_combobox.pack(pady=10)
-        tb.Button(self, text="Sanitäter hinzufügen", bootstyle="danger", width=20, command=self.add_medic).pack(pady=10)
-        tb.Button(self, text="Gesundheitsdaten",  width=20, bootstyle = "primary" ,command=self.add_health_data).pack(pady=10)
-        tb.Button(self, text="Protokoll speichern" , width=20, style="Custom.TButton", command=self.save_protokoll).pack(pady=10)
+        tb.Button(
+            self,
+            text="Sanitäter hinzufügen",
+            bootstyle="danger",
+            width=20,
+            command=self.add_medic,
+        ).pack(pady=10)
+        tb.Button(
+            self,
+            text="Gesundheitsdaten",
+            width=20,
+            bootstyle="primary",
+            command=self.add_health_data,
+        ).pack(pady=10)
+        tb.Button(
+            self,
+            text="Protokoll speichern",
+            width=20,
+            style="Custom.TButton",
+            command=self.save_protokoll,
+        ).pack(pady=10)
 
     def add_health_data(self):
         self.controller.show_frame("HealthDataPage")
@@ -349,13 +389,15 @@ class ProtokollPage(tb.Frame):
         teacher = users_crud.get_teacher_by_name(first_name, last_name)
         if teacher:
             teacher_id = teacher["teacher_id"]
-            protokoll_crud.add_teacher_to_protokoll(self.controller.alert_id, teacher_id)
+            protokoll_crud.add_teacher_to_protokoll(
+                self.controller.alert_id, teacher_id
+            )
         else:
             print("Lehrer nicht gefunden.")
 
         protokoll_crud.add_measure_to_protokoll(self.controller.alert_id, measure)
-        users_crud.add_sani1(self.controller.current_sani1, self.controller.alert_id )
-        users_crud.add_sani2(self.controller.current_sani2, self.controller.alert_id )
+        users_crud.add_sani1(self.controller.current_sani1, self.controller.alert_id)
+        users_crud.add_sani2(self.controller.current_sani2, self.controller.alert_id)
         print("Protokoll gespeichert")
         self.controller.show_frame("MaterialPage")
 
@@ -366,7 +408,9 @@ class ProtokollPage(tb.Frame):
         print(f"Gelesene Karten-ID: {card_id}")
         user = users_crud.get_user_by_card_number(str(card_id))
         if user:
-            mbox.showinfo("Erfolgreich", f"Willkommen {user['name']} {user['last_name']}!")
+            mbox.showinfo(
+                "Erfolgreich", f"Willkommen {user['name']} {user['last_name']}!"
+            )
             print(f"Willkommen {user['name']} {user['last_name']}!")
             self.controller.current_sani2 = card_id
             return
@@ -375,55 +419,74 @@ class ProtokollPage(tb.Frame):
             print("Karte nicht erkannt.")
 
 
-
-
-
-
 class RegisterPatientPage(tb.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
-        tb.Label(self, text="Patient registrieren", font=("Exo 2 ExtraBold", 16)).pack(pady=20)
+        tb.Label(self, text="Patient registrieren", font=("Exo 2 ExtraBold", 16)).pack(
+            pady=20
+        )
         PlaceholderEntry(self, "Vorname").pack(pady=10)
         PlaceholderEntry(self, "Nachname").pack(pady=10)
         self.birth_entry = DateEntry(self)
         self.birth_entry.pack(pady=10)
 
-        tb.Button(self, text="Patient registrieren", style="Custom.TButton", width=20, command=self.register_patient).pack(pady=10)
+        tb.Button(
+            self,
+            text="Patient registrieren",
+            style="Custom.TButton",
+            width=20,
+            command=self.register_patient,
+        ).pack(pady=10)
 
     def register_patient(self):
-        first_name = self.children['!placeholderentry'].get()
-        last_name = self.children['!placeholderentry2'].get()
-        birthday = datetime.datetime.strptime(self.birth_entry.entry.get(), "%d.%m.%Y").strftime("%d.%m.%Y")
+        first_name = self.children["!placeholderentry"].get()
+        last_name = self.children["!placeholderentry2"].get()
+        birthday = datetime.datetime.strptime(
+            self.birth_entry.entry.get(), "%d.%m.%Y"
+        ).strftime("%d.%m.%Y")
 
-        patient_crud.add_patient(first_name, last_name, birthday, self.controller.alert_id)
+        patient_crud.add_patient(
+            first_name, last_name, birthday, self.controller.alert_id
+        )
         self.controller.show_frame("ProtokollPage")
+
 
 class MaterialPage(tb.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
-        material_list= get_all_material_names()
+        material_list = get_all_material_names()
         tb.Label(self, text="Material", font=("Exo 2 ExtraBold", 16)).pack(pady=20)
-        material_combobox = tb.Combobox(
-            self, values= material_list
-        )
+        material_combobox = tb.Combobox(self, values=material_list)
         material_combobox.set("Material")
         material_combobox.pack(pady=10)
         PlaceholderEntry(self, "Menge").pack(pady=10)
-        tb.Button(self, text="Material hinzufügen", bootstyle="danger", width=20,command= self.add_material).pack(pady=10)
-        tb.Button(self, text="Material speichern", bootstyle="danger", width=20, command=self.save_materials).pack(
-            pady=10)
+        tb.Button(
+            self,
+            text="Material hinzufügen",
+            bootstyle="danger",
+            width=20,
+            command=self.add_material,
+        ).pack(pady=10)
+        tb.Button(
+            self,
+            text="Material speichern",
+            bootstyle="danger",
+            width=20,
+            command=self.save_materials,
+        ).pack(pady=10)
 
-        self.material_treeview = tb.Treeview(self, columns=("Material", "Menge"), show="headings")
+        self.material_treeview = tb.Treeview(
+            self, columns=("Material", "Menge"), show="headings"
+        )
         self.material_treeview.heading("Material", text="Material")
         self.material_treeview.heading("Menge", text="Menge")
         self.material_treeview.pack(fill=BOTH, expand=True, padx=20, pady=20)
 
-
     def add_material(self):
-        material = self.children['!combobox'].get()
-        menge = self.children['!placeholderentry'].get()
+        material = self.children["!combobox"].get()
+        menge = self.children["!placeholderentry"].get()
         if material == "Material" or not menge.isdigit():
             print("Bitte gültiges Material und Menge eingeben.")
             return
@@ -438,20 +501,39 @@ class MaterialPage(tb.Frame):
         self.controller.show_frame("AlertsPage")
 
 
-
-
 class HealthDataPage(tb.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
-        tb.Label(self, text="Gesundheitsdaten", font=("Exo 2 ExtraBold", 16)).pack(pady=20)
-        temperature_entry = PlaceholderEntry(self, "Körpertemperatur (°C)").pack(pady=10)
-        blood_presure_entry = PlaceholderEntry(self, "Blutdruck (mmHg)").pack(pady=10)
-        heart_rate_entry = PlaceholderEntry(self, "Herzfrequenz (BPM)").pack(pady=10)
-        blood_sugar_entry = PlaceholderEntry(self, "Blutzucker").pack(pady=10)
-        spo2_entry = PlaceholderEntry(self, "Sauerstoffsättigung (%)").pack(pady=10)
-        pain_entry = PlaceholderEntry(self, "Schmerzen 1-10").pack(pady=10)
-        tb.Button(self, text="Daten speichern", style="Custom.TButton", width=20, command=self.save_health_data).pack(pady=10)
+
+        scroll_frame = ScrollableFrame(self)
+        scroll_frame.pack(fill="both", expand=True)
+
+        container = scroll_frame.scrollable_frame
+
+        tb.Label(container, text="Gesundheitsdaten", font=("Exo 2 ExtraBold", 16)).pack(
+            pady=20
+        )
+        self.temperature_entry = PlaceholderEntry(container, "Körpertemperatur (°C)")
+        self.temperature_entry.pack(pady=10)
+        self.blood_pressure_entry = PlaceholderEntry(container, "Blutdruck (mmHg)")
+        self.blood_pressure_entry.pack(pady=10)
+        self.heart_rate_entry = PlaceholderEntry(container, "Herzfrequenz (BPM)")
+        self.heart_rate_entry.pack(pady=10)
+        self.blood_sugar_entry = PlaceholderEntry(container, "Blutzucker")
+        self.blood_sugar_entry.pack(pady=10)
+        self.spo2_entry = PlaceholderEntry(container, "Sauerstoffsättigung (%)")
+        self.spo2_entry.pack(pady=10)
+        self.pain_entry = PlaceholderEntry(container, "Schmerzen 1-10")
+        self.pain_entry.pack(pady=10)
+
+        tb.Button(
+            container,
+            text="Daten speichern",
+            bootstyle="danger",
+            width=20,
+            command=self.save_health_data,
+        ).pack(pady=10)
 
     def get_entry_value(self, entry, placeholder):
         value = entry.get()
@@ -459,12 +541,12 @@ class HealthDataPage(tb.Frame):
 
     def save_health_data(self):
         print("Gesundheitsdaten gespeichert")
-        pulse = self.get_entry_value(self.children['!placeholderentry3'], "Herzfrequenz (BPM)")
-        spo2 = self.get_entry_value(self.children['!placeholderentry5'], "Sauerstoffsättigung (%)")
-        blood_pressure = self.get_entry_value(self.children['!placeholderentry2'], "Blutdruck (mmHg)")
-        temperature = self.get_entry_value(self.children['!placeholderentry'], "Körpertemperatur (°C)")
-        blood_sugar = self.get_entry_value(self.children['!placeholderentry4'], "Blutzucker")
-        pain = self.get_entry_value(self.children['!placeholderentry6'], "Schmerzen 1-10")
+        pulse = self.get_entry_value(self.heart_rate_entry, "Herzfrequenz (BPM)")
+        spo2 = self.get_entry_value(self.spo2_entry, "Sauerstoffsättigung (%)")
+        blood_pressure = self.get_entry_value(self.blood_pressure_entry, "Blutdruck (mmHg)")
+        temperature = self.get_entry_value(self.temperature_entry, "Körpertemperatur (°C)")
+        blood_sugar = self.get_entry_value(self.blood_sugar_entry, "Blutzucker")
+        pain = self.get_entry_value(self.pain_entry, "Schmerzen 1-10")
 
         protokoll_crud.add_health_data_to_protokoll(
             self.controller.alert_id,
@@ -473,7 +555,7 @@ class HealthDataPage(tb.Frame):
             blood_pressure,
             temperature,
             blood_sugar,
-            pain
+            pain,
         )
         self.controller.show_frame("ProtokollPage")
 
@@ -505,16 +587,19 @@ class AlarmWidget(tb.Frame):
             text=f"Alarm #{alert_id}",
             font=("Exo 2 Bold", 8),
             foreground="white",
-            background=self.get_background_color(alert_type)
-        ).pack(side=TOP, padx=5, pady=0)  # Reduzierter Abstand nach unten
-
+            background=self.get_background_color(alert_type),
+        ).pack(
+            side=TOP, padx=5, pady=0
+        )  # Reduzierter Abstand nach unten
 
         tb.Button(
             widget_frame,
             text="Einsatz übernehmen",
             bootstyle=f"{bg_color}",
-            command=self.accept_alarm
-        ).pack(side=TOP, padx=5, pady=0)  # Reduzierter Abstand
+            command=self.accept_alarm,
+        ).pack(
+            side=TOP, padx=5, pady=0
+        )  # Reduzierter Abstand
 
     def get_alert_color(self, alert_type):
         """Bestimmt die Farbe basierend auf dem Alarmtyp"""
@@ -551,9 +636,10 @@ class AlarmWidget(tb.Frame):
         colors = {
             "danger": "#dc3545",  # Rot
             "warning": "#ff9800",  # Gelb
-            "info": "#0dcaf0"  # Blau
+            "info": "#0dcaf0",  # Blau
         }
         return colors.get(style_name, "#ffffff")
+
 
 if __name__ == "__main__":
     app = App()

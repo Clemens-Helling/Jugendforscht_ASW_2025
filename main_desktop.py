@@ -1,15 +1,18 @@
-import ttkbootstrap as tb
-from click import command
-from ttkbootstrap import DateEntry
-from ttkbootstrap.constants import *
+import datetime
+import os
 import tkinter.font as tkFont
 from tkinter import filedialog, messagebox
-from Alert import alarm
-from Data import patient_crud, alerts_crud, protokoll_crud, users_crud
-import datetime
+
+import ttkbootstrap as tb
+from click import command
 from pyprinter import Printer
+from ttkbootstrap import DateEntry
+from ttkbootstrap.constants import *
+
+from Alert import alarm
+from Data import (alerts_crud, materials_crud, patient_crud, protokoll_crud,
+                  users_crud)
 from PDF.pdf import main
-import os
 from rfid.rfid import read_rfid_uid
 
 
@@ -78,6 +81,12 @@ class App(tb.Window):
             style="dark",
             command=lambda: self.show_frame("UserManagementPage"),
         ).pack(side=LEFT, padx=5, pady=5)
+        tb.Button(
+            navbar,
+            text="Materialverwaltung",
+            style="dark",
+            command=lambda: self.show_frame("MaterialManagementPage"),
+        ).pack(side=LEFT, padx=5, pady=5)
         tb.Button(navbar, text="Beenden", style="danger", command=self.destroy).pack(
             side=RIGHT, padx=5, pady=5
         )
@@ -94,7 +103,14 @@ class App(tb.Window):
         self.frames = {}
 
         # Seiten initialisieren und in dict speichern
-        for F in (AlertPage, AboutPage, DetailPage, ElDataPage, UserManagementPage):
+        for F in (
+            AlertPage,
+            AboutPage,
+            DetailPage,
+            ElDataPage,
+            UserManagementPage,
+            MaterialManagementPage,
+        ):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -130,7 +146,7 @@ class AlertPage(tb.Frame):
         self.birth_entry.pack(pady=10)
 
         symptom_combobox = tb.Combobox(
-            self, values=["Symptom 1", "Symptom 2", "Symptom 3"]
+            self, values=["Bauchweh", "Schürfwunde", "SSchnittwunde", "Übelkeit", "Kopfschmerzen"]
         )
         symptom_combobox.set("Symptome")
         symptom_combobox.pack(pady=10)
@@ -164,11 +180,11 @@ class AlertPage(tb.Frame):
         ).pack(pady=10)
 
     def on_alarm_button_click(self):
-        name = self.children['!placeholderentry'].get()
-        last_name = self.children['!placeholderentry2'].get()
+        name = self.children["!placeholderentry"].get()
+        last_name = self.children["!placeholderentry2"].get()
 
-        symptom = self.children['!combobox'].get()
-        alert_type = self.children['!combobox2'].get()
+        symptom = self.children["!combobox"].get()
+        alert_type = self.children["!combobox2"].get()
         is_alert_without_name = self.alert_without_name_var.get()
 
         if symptom == "Symptome" or alert_type == "Alarmtyp":
@@ -180,7 +196,9 @@ class AlertPage(tb.Frame):
             protokoll_crud.update_status(alert_id, "ohne Name")
             print("Alarm ohne Name ausgelöst.")
         else:
-            birthday = datetime.datetime.strptime(self.birth_entry.entry.get(), "%d.%m.%Y").strftime("%d.%m.%Y")
+            birthday = datetime.datetime.strptime(
+                self.birth_entry.entry.get(), "%d.%m.%Y"
+            ).strftime("%d.%m.%Y")
             alert_id = alarm.add_alert(symptom, alert_type)
             print(f"Alert ID in  {alert_id}")
             patient_crud.add_patient(name, last_name, birthday, alert_id)
@@ -219,9 +237,6 @@ class AboutPage(tb.Frame):
 
         self.result_table.heading("operation_end", text="Einsatzende")
         self.result_table.pack(pady=10)
-
-
-
 
         # Scrollbar hinzufügen
         scrollbar = tb.Scrollbar(
@@ -299,7 +314,9 @@ class DetailPage(tb.Frame):
             self, text="Als PDF speichern", command=self.save_as_pdf
         )
         self.pdf_button.pack(pady=10)
-        self.el_data_button = tb.Button(self, text="Einsatzleit-Protokol", command= self.save_el_data)
+        self.el_data_button = tb.Button(
+            self, text="Einsatzleit-Protokol", command=self.save_el_data
+        )
         self.el_data_button.pack(pady=10)
         self.back_button = tb.Button(self, text="Back", command=self.show_back)
         self.back_button.pack(pady=10)
@@ -327,10 +344,13 @@ class DetailPage(tb.Frame):
                 defaultextension=".pdf",
                 filetypes=[("PDF Dateien", "*.pdf")],
                 initialfile="einsatz_protokoll.pdf",
-                title="Speicherort für PDF wählen")
+                title="Speicherort für PDF wählen",
+            )
             main(alert_id, file_path)
             if os.path.exists(file_path):
-                if messagebox.askyesno("Öffnen", "PDF wurde erstellt. Möchten Sie die Datei öffnen?"):
+                if messagebox.askyesno(
+                    "Öffnen", "PDF wurde erstellt. Möchten Sie die Datei öffnen?"
+                ):
                     os.startfile(file_path)
         else:
             print(
@@ -346,18 +366,23 @@ class ElDataPage(tb.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
-        tb.Label(self, text="Einsatzleit-Protokol", font=("Exo 2 ExtraBold", 16)).pack(pady=20)
+        tb.Label(self, text="Einsatzleit-Protokol", font=("Exo 2 ExtraBold", 16)).pack(
+            pady=20
+        )
         PlaceholderEntry(self, "Eltern benachrichtigt von").pack(pady=10)
         PlaceholderEntry(self, "Eltern benachrichtigt um").pack(pady=10)
-        measure_combobox = tb.Combobox(self, values=["Rettungsdienst", "Taxifahrt ins KH/zum Arzt","Aleine nach hause" ])
+        measure_combobox = tb.Combobox(
+            self,
+            values=["Rettungsdienst", "Taxifahrt ins KH/zum Arzt", "Aleine nach hause"],
+        )
         measure_combobox.set("Maßnahme")
-        measure_combobox.bind("<<ComboboxSelected>>",  self.on_selection)
+        measure_combobox.bind("<<ComboboxSelected>>", self.on_selection)
         measure_combobox.pack(pady=10)
         self.escort_person_entry = PlaceholderEntry(self, "Begleitperson")
         self.hospital_entry = PlaceholderEntry(self, "Krankenhaus")
-        tb.Button(self, text="Speichern", style="success", width=10, command=self.save_data).pack(pady=10)
-
-
+        tb.Button(
+            self, text="Speichern", style="success", width=10, command=self.save_data
+        ).pack(pady=10)
 
     def on_selection(self, event):
         selection = event.widget.get()
@@ -372,23 +397,32 @@ class ElDataPage(tb.Frame):
             self.hospital_entry.forget()
 
     def save_data(self):
-        notified_by = self.children['!placeholderentry'].get()
-        notified_time = self.children['!placeholderentry2'].get()
-        measure = self.children['!combobox'].get()
+        notified_by = self.children["!placeholderentry"].get()
+        notified_time = self.children["!placeholderentry2"].get()
+        measure = self.children["!combobox"].get()
         escort_person = self.escort_person_entry.get()
         hospital = self.hospital_entry.get()
         time_obj = datetime.datetime.strptime(notified_time, "%H:%M").time()
 
         # Mit heutigem Datum kombinieren
         dt = datetime.datetime.combine(datetime.date.today(), time_obj)
-        if measure == "Taxifahrt ins KH/zum Arzt" :
+        if measure == "Taxifahrt ins KH/zum Arzt":
             updatet_measure = f"{measure} mit {escort_person}"
-            protokoll_crud.add_pickup_measure_to_protokoll(self.controller.selected_alert, updatet_measure, notified_by, dt)
+            protokoll_crud.add_pickup_measure_to_protokoll(
+                self.controller.selected_alert, updatet_measure, notified_by, dt
+            )
         elif measure == "Rettungsdienst":
-            protokoll_crud.add_pickup_measure_to_protokoll(self.controller.selected_alert, measure, notified_by, dt)
-            protokoll_crud.add_hospital_to_protokoll(self.controller.selected_alert, hospital)
+            protokoll_crud.add_pickup_measure_to_protokoll(
+                self.controller.selected_alert, measure, notified_by, dt
+            )
+            protokoll_crud.add_hospital_to_protokoll(
+                self.controller.selected_alert, hospital
+            )
         else:
-            protokoll_crud.add_pickup_measure_to_protokoll(self.controller.selected_alert, measure, notified_by, dt)
+            protokoll_crud.add_pickup_measure_to_protokoll(
+                self.controller.selected_alert, measure, notified_by, dt
+            )
+
 
 class UserManagementPage(tb.Frame):
     def __init__(self, parent, controller):
@@ -396,7 +430,9 @@ class UserManagementPage(tb.Frame):
         self.selected_user = None
         self.controller = controller
         lehrer_liste = users_crud.get_all_teachers()
-        tb.Label(self, text="Benutzerverwaltung", font=("Exo 2 ExtraBold", 16)).pack(pady=20)
+        tb.Label(self, text="Benutzerverwaltung", font=("Exo 2 ExtraBold", 16)).pack(
+            pady=20
+        )
         first_name_entry = PlaceholderEntry(self, "Vorname")
         first_name_entry.pack(pady=10)
         last_name_entry = PlaceholderEntry(self, "Nachname")
@@ -412,13 +448,33 @@ class UserManagementPage(tb.Frame):
         role_combobox.pack(pady=10)
         self.button_frame = tb.Frame(self)
         self.button_frame.pack(pady=10)
-        self.add_user_button = tb.Button(self, text="Benutzer hinzufügen", style="success", width=20, command=self.add_user)
+        self.add_user_button = tb.Button(
+            self,
+            text="Benutzer hinzufügen",
+            style="success",
+            width=20,
+            command=self.add_user,
+        )
         self.add_user_button.pack(pady=10)
-        self.update_user_button = tb.Button(self, text="Benutzer aktualisieren", style="warning", width=20, command=self.update_user)
-        self.delete_user_button = tb.Button(self, text="Benutzer löschen", style="danger", width=20, command=self.delete_user)
+        self.update_user_button = tb.Button(
+            self,
+            text="Benutzer aktualisieren",
+            style="warning",
+            width=20,
+            command=self.update_user,
+        )
+        self.delete_user_button = tb.Button(
+            self,
+            text="Benutzer löschen",
+            style="danger",
+            width=20,
+            command=self.delete_user,
+        )
 
         self.user_table = tb.Treeview(
-        self, columns=("ID","Vorname", "Nachname", "Lehrkraft", "Kartennummer", "Rolle"), show="headings"
+            self,
+            columns=("ID", "Vorname", "Nachname", "Lehrkraft", "Kartennummer", "Rolle"),
+            show="headings",
         )
 
         self.user_table.heading("ID", text="ID")
@@ -431,6 +487,7 @@ class UserManagementPage(tb.Frame):
         self.load_users()
         self.user_table.bind("<ButtonRelease-1>", self.on_row_click)
         self.user_table.bind("<Double-1>", self.on_double_click)
+
     # Python
     def load_users(self):
         self.user_table.delete(*self.user_table.get_children())
@@ -444,7 +501,7 @@ class UserManagementPage(tb.Frame):
                     str(user.get("last_name", "")),
                     str(user.get("lernbegleiter", "")),
                     str(user.get("karten_nummer", "")),
-                    str(user.get("permission", ""))
+                    str(user.get("permission", "")),
                 ]
             elif isinstance(user, str):
                 safe_values = user.split(",")
@@ -454,28 +511,36 @@ class UserManagementPage(tb.Frame):
 
             self.user_table.insert("", "end", values=safe_values)
 
-
-
     def add_user(self):
-        first_name = self.children['!placeholderentry'].get().strip()
-        last_name = self.children['!placeholderentry2'].get().strip()
-        lernbegleiter = self.children['!combobox'].get().strip()
+        first_name = self.children["!placeholderentry"].get().strip()
+        last_name = self.children["!placeholderentry2"].get().strip()
+        lernbegleiter = self.children["!combobox"].get().strip()
         if " " in lernbegleiter:
             lernbegleiter_first_name, lernbegleiter_last_name = lernbegleiter.split()
-            teacher = users_crud.get_teacher_by_name(lernbegleiter_first_name, lernbegleiter_last_name)
+            teacher = users_crud.get_teacher_by_name(
+                lernbegleiter_first_name, lernbegleiter_last_name
+            )
         else:
             teacher = users_crud.get_teacher_by_name(lernbegleiter)
-        teacher_id = teacher['teacher_id'] if teacher else None
-        card_number = self.children['!placeholderentry3'].get().strip()
-        role = self.children['!combobox2'].get().strip()
+        teacher_id = teacher["teacher_id"] if teacher else None
+        card_number = self.children["!placeholderentry3"].get().strip()
+        role = self.children["!combobox2"].get().strip()
 
-        if not first_name or not last_name or lernbegleiter == "Lehrkraft" or not card_number or role == "Rolle":
+        if (
+            not first_name
+            or not last_name
+            or lernbegleiter == "Lehrkraft"
+            or not card_number
+            or role == "Rolle"
+        ):
             messagebox.showerror("Fehler", "Bitte füllen Sie alle Felder aus.")
             return
 
         existing_user = users_crud.get_user_by_card_number(card_number)
         if existing_user:
-            messagebox.showerror("Fehler", "Ein Benutzer mit dieser Kartennummer existiert bereits.")
+            messagebox.showerror(
+                "Fehler", "Ein Benutzer mit dieser Kartennummer existiert bereits."
+            )
 
         users_crud.add_user(first_name, last_name, teacher_id, card_number, role)
         messagebox.showinfo("Erfolg", "Benutzer erfolgreich hinzugefügt.")
@@ -490,20 +555,21 @@ class UserManagementPage(tb.Frame):
             self.selected_user = selected_user_data[0]
             print(self.selected_user)
             if users_crud.get_teacher_name_by_id(selected_user_data[3]):
-                lernbegleiter_name = users_crud.get_teacher_name_by_id(selected_user_data[3])
+                lernbegleiter_name = users_crud.get_teacher_name_by_id(
+                    selected_user_data[3]
+                )
             else:
                 lernbegleiter_name = "Nicht zugewiesen"
 
-
             # Daten in die Entry-Felder einsetzen
-            self.children['!placeholderentry'].delete(0, 'end')
-            self.children['!placeholderentry'].insert(0, selected_user_data[1])
-            self.children['!placeholderentry2'].delete(0, 'end')
-            self.children['!placeholderentry2'].insert(0, selected_user_data[2])
-            self.children['!combobox'].set(lernbegleiter_name)
-            self.children['!placeholderentry3'].delete(0, 'end')
-            self.children['!placeholderentry3'].insert(0, selected_user_data[4])
-            self.children['!combobox2'].set(selected_user_data[5])
+            self.children["!placeholderentry"].delete(0, "end")
+            self.children["!placeholderentry"].insert(0, selected_user_data[1])
+            self.children["!placeholderentry2"].delete(0, "end")
+            self.children["!placeholderentry2"].insert(0, selected_user_data[2])
+            self.children["!combobox"].set(lernbegleiter_name)
+            self.children["!placeholderentry3"].delete(0, "end")
+            self.children["!placeholderentry3"].insert(0, selected_user_data[4])
+            self.children["!combobox2"].set(selected_user_data[5])
 
             # Vorherige Buttons entfernen
             for widget in self.button_frame.winfo_children():
@@ -528,25 +594,29 @@ class UserManagementPage(tb.Frame):
     def update_user(self):  # Ohne (self, event)
         if self.selected_user:
             print(f"Benutzer aktualisieren: {self.selected_user}")
-            first_name = self.children['!placeholderentry'].get().strip()
-            last_name = self.children['!placeholderentry2'].get().strip()
-            lernbegleiter = self.children['!combobox'].get().strip()
+            first_name = self.children["!placeholderentry"].get().strip()
+            last_name = self.children["!placeholderentry2"].get().strip()
+            lernbegleiter = self.children["!combobox"].get().strip()
             if lernbegleiter != "Lehrkraft":
                 if " " in lernbegleiter:
-                    lernbegleiter_first_name, lernbegleiter_last_name = lernbegleiter.split()
-                    teacher = users_crud.get_teacher_by_name(lernbegleiter_first_name, lernbegleiter_last_name)
+                    lernbegleiter_first_name, lernbegleiter_last_name = (
+                        lernbegleiter.split()
+                    )
+                    teacher = users_crud.get_teacher_by_name(
+                        lernbegleiter_first_name, lernbegleiter_last_name
+                    )
                 else:
                     teacher = users_crud.get_teacher_by_name(lernbegleiter)
-                teacher_id = teacher['teacher_id'] if teacher else None
+                teacher_id = teacher["teacher_id"] if teacher else None
             else:
                 teacher_id = None
 
+            card_number = self.children["!placeholderentry3"].get().strip()
+            role = self.children["!combobox2"].get().strip()
 
-            card_number = self.children['!placeholderentry3'].get().strip()
-            role = self.children['!combobox2'].get().strip()
-
-            users_crud.update_user(self.selected_user, first_name , last_name, teacher_id, card_number, role)
-
+            users_crud.update_user(
+                self.selected_user, first_name, last_name, teacher_id, card_number, role
+            )
 
     def delete_user(self):  # Ohne (self, event)
         if self.selected_user:
@@ -556,32 +626,167 @@ class UserManagementPage(tb.Frame):
         else:
             print("Kein Benutzer ausgewählt")
 
-
     def read_card_number(self, event):
-
 
         card_number = read_rfid_uid()
         if card_number:
-            self.children['!placeholderentry3'].delete(0, 'end')
-            self.children['!placeholderentry3'].insert(0, card_number[4:])
+            self.children["!placeholderentry3"].delete(0, "end")
+            self.children["!placeholderentry3"].insert(0, card_number[4:])
         else:
             messagebox.showerror("Fehler", "Keine Kartennummer gelesen.")
 
 
+class MaterialManagementPage(tb.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        self.selected_material = None
+        tb.Label(self, text="Materialverwaltung", font=("Exo 2 ExtraBold", 16)).pack(
+            pady=20
+        )
+        # Weitere Widgets und Logik für die Materialverwaltung hier hinzufügent
+        left_frame = tb.Frame(self)
+        left_frame.pack(side="left", fill="both", expand=True)
+
+        # Rechter Frame mit Treeview
+        right_frame = tb.Frame(self)
+        right_frame.pack(side="right", fill="both", expand=True)
+        self.material_treeview = tb.Treeview(right_frame)
+        self.material_treeview.pack(pady=10, fill=BOTH)
+
+        scrollbar = tb.Scrollbar(
+            right_frame, orient="vertical", command=self.material_treeview.yview
+        )
+        self.material_treeview.configure(yscroll=scrollbar.set)
+        scrollbar.pack(side="right", fill="y")
+        self.material_treeview.pack(side="left", fill="both", expand=True)
+        self.material_treeview.bind("<<TreeviewSelect>>", self.on_row_click)
+        self.material_treeview.bind("<Button-3>", self.deselect_all)
+        # Spalten definieren
+        self.material_treeview["columns"] = (
+            "ID",
+            "Name",
+            "Menge",
+            "Mindestvorrat",
+            "Ablaufdatum",
+        )
+        self.material_treeview["show"] = (
+            "headings"  # Blendet die erste leere Spalte aus
+        )
+
+        # Spaltenbreiten mit column() (nicht columnconfigure!)
+        self.material_treeview.column("ID", width=50, minwidth=50, stretch=False)
+        self.material_treeview.column("Name", width=150, minwidth=100, stretch=True)
+        self.material_treeview.column("Menge", width=100, minwidth=80, stretch=False)
+        self.material_treeview.column(
+            "Mindestvorrat", width=100, minwidth=80, stretch=False
+        )
+        self.material_treeview.column(
+            "Ablaufdatum", width=150, minwidth=100, stretch=True
+        )
+
+        # Überschriften
+        self.material_treeview.heading("ID", text="ID")
+        self.material_treeview.heading("Name", text="Name")
+        self.material_treeview.heading("Menge", text="Menge")
+        self.material_treeview.heading("Mindestvorrat", text="Mindestvorrat")
+        self.material_treeview.heading("Ablaufdatum", text="Ablaufdatum")
 
 
+        self.name_entry = PlaceholderEntry(left_frame, "Materialname")
+        self.name_entry.pack(pady=10)
 
+        self.quantity_entry = PlaceholderEntry(left_frame, "Menge")
+        self.quantity_entry.pack(pady=10)
 
+        self.min_quantity_entry = PlaceholderEntry(left_frame, "Mindestvorrat")
+        self.min_quantity_entry.pack(pady=10)
 
+        self.expiration_entry = DateEntry(left_frame)
+        self.expiration_entry.pack(pady=10)
 
+        add_button = tb.Button(
+            left_frame,
+            text="Material hinzufügen",
+            style="success",
+            width=20,
+            command=self.save_changes,
+        )
+        add_button.pack(pady=10, padx=100)
 
+        self.load_materials(self.material_treeview)
 
+    def load_materials(self, treeview):
+        treeview.delete(*treeview.get_children())
+        materials = materials_crud.get_all_materials()
 
+        # Tag für rote Schrift definieren
+        treeview.tag_configure("low_stock", foreground="red")
 
+        for material in materials:
+            if isinstance(material, dict):
+                safe_values = [
+                    str(material.get("material_id", "")),
+                    str(material.get("material_name", "")),
+                    str(material.get("quantity", "")),
+                    str(material.get("minimum_stock", "")),
+                    str(material.get("expires_at", "")),
+                ]
+            elif isinstance(material, str):
+                safe_values = material.split(",")
+            else:
+                safe_values = [str(v) for v in material]
 
+            # Bedingung prüfen und Tag anwenden
+            if int(safe_values[2]) <= int(safe_values[3]):  # Menge <= Mindestvorrat
+                treeview.insert("", "end", values=safe_values, tags=("low_stock",))
+            else:
+                treeview.insert("", "end", values=safe_values)
 
+    def on_row_click(self, event):
+        selected = self.material_treeview.selection()
+        if selected:
+            selected_material_data = self.material_treeview.item(selected[0], "values")
+            self.selected_material = selected_material_data[0]
+            # Lösung 1: Direkte Referenzen auf die Widgets speichern
+            self.name_entry.delete(0, "end")
+            self.name_entry.insert(0, selected_material_data[1])
+            self.quantity_entry.delete(0, "end")
+            self.quantity_entry.insert(0, selected_material_data[2])
+            self.min_quantity_entry.delete(0, "end")
+            self.min_quantity_entry.insert(0, selected_material_data[3])
+            self.expiration_entry.entry.delete(0, "end")
+            self.expiration_entry.entry.insert(0, str(selected_material_data[4]))
 
+            print(f"Ausgewähltes Material: {self.selected_material}")
 
+    def deselect_all(self, event):
+        # Prüfen ob auf leeren Bereich geklickt wurde
+        item_id = self.material_treeview.identify_row(event.y)
+        if not item_id:
+            # Auf leeren Bereich geklickt -> alles deselektieren
+            self.material_treeview.selection_remove(self.material_treeview.selection())
+            self.selected_material = None
+            print("Auswahl aufgehoben")
+
+    def save_changes(self):
+        try:
+            name = self.name_entry.get().strip()
+            quantity = int(self.quantity_entry.get().strip())
+            min_quantity = int(self.min_quantity_entry.get().strip())
+            expiration = self.expiration_entry.entry.get().strip()
+
+            # Datum in das richtige Format konvertieren
+            expiration_date = datetime.datetime.strptime(expiration, "%d.%m.%y").strftime("%Y-%m-%d")
+
+            # Material hinzufügen
+            materials_crud.add_material(name, quantity, min_quantity, expiration_date)
+            messagebox.showinfo("Erfolg", "Material erfolgreich gespeichert.")
+            self.load_materials(self.material_treeview)
+        except ValueError:
+            messagebox.showerror("Fehler", "Bitte geben Sie gültige Werte ein.")
+        except Exception as e:
+            messagebox.showerror("Fehler", f"Ein Fehler ist aufgetreten: {str(e)}")
 
 
 if __name__ == "__main__":

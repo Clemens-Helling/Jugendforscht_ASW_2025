@@ -1,15 +1,7 @@
 import datetime
-from sqlalchemy import (
-    BLOB,
-    Column,
-    DateTime,
-    Float,
-    ForeignKey,
-    Integer,
-    String,
-    Text,
-    create_engine,
-)
+
+from sqlalchemy import (BLOB, Column, DateTime, Float, ForeignKey, Integer,
+                        String, Text, create_engine)
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()

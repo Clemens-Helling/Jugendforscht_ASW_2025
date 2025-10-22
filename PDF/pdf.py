@@ -5,18 +5,21 @@ Einsatzprotokoll Generator mit ReportLab
 Erstellt ein ausgefülltes Einsatzprotokoll mit variablen Daten - mit zweiter Seite
 """
 
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.units import mm, cm
+import os
+from datetime import datetime
+
+from reportlab.lib import colors
 from reportlab.lib.colors import black, white
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import cm, mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib import colors
-from datetime import datetime
+from reportlab.pdfgen import canvas
+from reportlab.platypus import (Paragraph, SimpleDocTemplate, Spacer, Table,
+                                TableStyle)
+
 from Data.protokoll_crud import prepare_pdf_data
-import os
 
 
 class EinsatzprotokollGenerator:
@@ -71,15 +74,26 @@ class EinsatzprotokollGenerator:
         # Untertitel
         c.setFont("Helvetica", 12)
         if subtitle:
-            c.drawCentredString(self.width / 2, self.height - 1.8 * cm,
-                                f"Dokumentation des Einsatzverlaufs - {subtitle}")
+            c.drawCentredString(
+                self.width / 2,
+                self.height - 1.8 * cm,
+                f"Dokumentation des Einsatzverlaufs - {subtitle}",
+            )
         else:
-            c.drawCentredString(self.width / 2, self.height - 1.8 * cm, "Dokumentation des Einsatzverlaufs")
+            c.drawCentredString(
+                self.width / 2,
+                self.height - 1.8 * cm,
+                "Dokumentation des Einsatzverlaufs",
+            )
 
         # Linie unter Header
         c.setLineWidth(1)
-        c.line(self.margin, self.height - 2.5 * cm,
-               self.width - self.margin, self.height - 2.5 * cm)
+        c.line(
+            self.margin,
+            self.height - 2.5 * cm,
+            self.width - self.margin,
+            self.height - 2.5 * cm,
+        )
 
     def draw_form_fields_page_1(self, c, data):
         """Zeichnet die Formularfelder der ersten Seite mit Daten"""
@@ -93,7 +107,7 @@ class EinsatzprotokollGenerator:
             ("Name:", data.get("name", "")),
             ("Vorname:", data.get("vorname", "")),
             ("Geburtsdatum:", data.get("geburtsdatum", "")),
-            ("Klassenlehrer:", data.get("klassenlehrer", ""))
+            ("Klassenlehrer:", data.get("klassenlehrer", "")),
         ]
 
         for i, (label, value) in enumerate(fields):
@@ -108,13 +122,21 @@ class EinsatzprotokollGenerator:
         self.draw_section(c, "2. Alarmierung", y_pos)
         y_pos -= 1 * cm
 
-        self.draw_field_with_value(c, "Symptom:",
-                                   data.get("symptom", ""), self.margin, y_pos, width=12 * cm)
+        self.draw_field_with_value(
+            c, "Symptom:", data.get("symptom", ""), self.margin, y_pos, width=12 * cm
+        )
         y_pos -= 0.8 * cm
-        self.draw_field_with_value(c, "Alarm typ:",
-                                   data.get("alarm_typ", ""), self.margin, y_pos, width=8 * cm)
-        self.draw_field_with_value(c, "Alarm eingegangen:",
-                                   data.get("alarm_eingegangen", ""), self.width / 2, y_pos, width=8 * cm)
+        self.draw_field_with_value(
+            c, "Alarm typ:", data.get("alarm_typ", ""), self.margin, y_pos, width=8 * cm
+        )
+        self.draw_field_with_value(
+            c,
+            "Alarm eingegangen:",
+            data.get("alarm_eingegangen", ""),
+            self.width / 2,
+            y_pos,
+            width=8 * cm,
+        )
 
         y_pos -= 2 * cm
 
@@ -128,7 +150,7 @@ class EinsatzprotokollGenerator:
             ("Blutdruck:", data.get("blutdruck", "")),
             ("Blutzucker:", data.get("blutzucker", "")),
             ("Körpertemperatur:", data.get("temperatur", "")),
-            ("Schmerz:", data.get("schmerz", ""))
+            ("Schmerz:", data.get("schmerz", "")),
         ]
 
         for i, (label, value) in enumerate(fields):
@@ -148,7 +170,7 @@ class EinsatzprotokollGenerator:
             ("Abholmaßnahme:", data.get("abholmassnahme", "")),
             ("Eltern benachrichtigt um:", data.get("eltern_zeit", "")),
             ("Eltern benachrichtigt von:", data.get("eltern_von", "")),
-            ("Krankenhaus:", data.get("krankenhaus", ""))
+            ("Krankenhaus:", data.get("krankenhaus", "")),
         ]
 
         for i, (label, value) in enumerate(fields):
@@ -161,7 +183,6 @@ class EinsatzprotokollGenerator:
         """Zeichnet die Formularfelder der zweiten Seite"""
         y_pos = self.height - 3.5 * cm
 
-
         self.draw_section(c, "5. Personal", y_pos)
         y_pos -= 1 * cm
 
@@ -171,17 +192,17 @@ class EinsatzprotokollGenerator:
         self.draw_personnel_table(c, y_pos, data.get("personal", []))
         y_pos -= 6 * cm
 
-
-
     def draw_footer(self, c, page_number):
         """Zeichnet den Fußbereich"""
         y_pos = 4 * cm
 
-
         # Seitennummer
         c.setFont("Helvetica", 8)
-        c.drawRightString(self.width - self.margin, 1 * cm,
-                          f"Seite {page_number} - Erstellt am {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+        c.drawRightString(
+            self.width - self.margin,
+            1 * cm,
+            f"Seite {page_number} - Erstellt am {datetime.now().strftime('%d.%m.%Y %H:%M')}",
+        )
 
     def draw_section(self, c, title, y_pos):
         """Zeichnet eine Sektionsüberschrift"""
@@ -189,8 +210,9 @@ class EinsatzprotokollGenerator:
         c.drawString(self.margin, y_pos, title)
         # Linie unter Überschrift
         c.setLineWidth(0.5)
-        c.line(self.margin, y_pos - 0.3 * cm,
-               self.width - self.margin, y_pos - 0.3 * cm)
+        c.line(
+            self.margin, y_pos - 0.3 * cm, self.width - self.margin, y_pos - 0.3 * cm
+        )
 
     def draw_field_with_value(self, c, label, value, x_pos, y_pos, width=6 * cm):
         """Zeichnet ein Eingabefeld mit Wert"""
@@ -199,15 +221,16 @@ class EinsatzprotokollGenerator:
 
         # Linie für Eingabe
         c.setLineWidth(0.5)
-        c.line(x_pos + 0.1 * cm, y_pos - 0.5 * cm,
-               x_pos + width, y_pos - 0.5 * cm)
+        c.line(x_pos + 0.1 * cm, y_pos - 0.5 * cm, x_pos + width, y_pos - 0.5 * cm)
 
         # Wert eintragen
         if value:
             c.setFont("Helvetica", 9)
             c.drawString(x_pos + 0.2 * cm, y_pos - 0.4 * cm, str(value))
 
-    def draw_text_area_with_content(self, c, label, content, x_pos, y_pos, width=10 * cm, height=3 * cm):
+    def draw_text_area_with_content(
+        self, c, label, content, x_pos, y_pos, width=10 * cm, height=3 * cm
+    ):
         """Zeichnet ein größeres Textfeld mit Inhalt"""
         c.setFont("Helvetica", 10)
         c.drawString(x_pos, y_pos, label)
@@ -296,15 +319,19 @@ class EinsatzprotokollGenerator:
         table = Table(table_data, colWidths=col_widths)
 
         # 5. Tabellenstil definieren
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ('BOX', (0, 0), (-1, -1), 1, colors.black),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ]))
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+                    ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                    ("BOX", (0, 0), (-1, -1), 1, colors.black),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 10),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                ]
+            )
+        )
 
         # 6. Tabelle auf dem Canvas zeichnen
         # WICHTIG: Definiere die x_pos, bevor du sie verwendest
@@ -327,12 +354,10 @@ def create_sample_data():
         "vorname": "Max",
         "geburtsdatum": "15.03.2010",
         "klassenlehrer": "Frau Steffen",
-
         # Alarmierung
         "symptom": "Sturz vom Klettergerüst",
         "alarm_typ": "Unfall",
         "alarm_eingegangen": "14:23 Uhr",
-
         # Vitalzeichen
         "puls": "95 /min",
         "spo2": "98%",
@@ -340,23 +365,19 @@ def create_sample_data():
         "blutzucker": "95 mg/dl",
         "temperatur": "36.8°C",
         "schmerz": "4/10",
-
         # Maßnahmen
         "massnahme": "Erstversorgung",
         "abholmassnahme": "Rettungswagen",
         "eltern_zeit": "14:45 Uhr",
         "eltern_von": "Sekretariat",
         "krankenhaus": "Klinikum Lörach",
-
         # Seite 2 - Personal
         "personal": [
-            {"name": "Anna Müller", "funktion": "Sani1",
-             "unterschrift": ""},
+            {"name": "Anna Müller", "funktion": "Sani1", "unterschrift": ""},
             {"name": "Roman Kramer", "funktion": "Sani2"},
-            {"name": "Andrea Trippe", "funktion": "Einsatztleitung"}
-        ],}
-
-
+            {"name": "Andrea Trippe", "funktion": "Einsatztleitung"},
+        ],
+    }
 
 
 def main(alert_id, filename):
