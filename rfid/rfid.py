@@ -54,7 +54,7 @@ def read_rfid_uid_usb(com_port=None, timeout=10):
 
                 # UID Format prüfen (XX:XX:XX:XX)
                 if line and ":" in line:
-                    return line[6:]
+                    return line[10:]
 
     except Exception as e:
         print(f"Fehler beim Lesen der UID: {e}")

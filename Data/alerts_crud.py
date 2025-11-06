@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 import pytz
-
+from contextlib import contextmanager
 from Data.models import Alarmierung, Protokoll
 from Data.setup_database import session
 
@@ -9,6 +9,17 @@ utc_time = datetime.now(UTC)
 local_time = utc_time.astimezone(pytz.timezone("Europe/Berlin"))
 print(local_time)
 
+@contextmanager
+def session_scope():
+    """Bietet einen Transaktions-Umfang für die Datenbank-Session."""
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
 
 def add_alert(symptom, alert_type):
     alert = Alarmierung(
@@ -24,11 +35,18 @@ def add_alert(symptom, alert_type):
 
     session.add(protokoll)
     session.commit()
+
+    # WICHTIG: Session expiren nach dem Commit
+    session.expire_all()
+
     return alert_id
 
 
 def get_alerts():
     """Gibt alle Alarmierungen zurück."""
+    # Session vor Abfrage refreshen
+    session.expire_all()
+
     alerts = session.query(Alarmierung).all()
     return [
         {
@@ -42,25 +60,22 @@ def get_alerts():
 
 
 def get_all_active_alerts():
-    """Gibt alle aktiven Alarmierungen zurück, bei denen operation_end leer ist."""
-    protokolls = session.query(Protokoll).filter(Protokoll.operation_end == None).all()
-
-    active_alerts = []
-
-    for protokoll in protokolls:
-        alert = (
-            session.query(Alarmierung)
-            .filter(Alarmierung.alert_id == protokoll.alert_id)
-            .first()
-        )
-        if alert:
-            active_alerts.append(
-                {
-                    "id": alert.alert_id,
-                    "alert_received": alert.alert_received,
-                    "alert_type": alert.alert_type,
-                    "symptom": alert.symptom,
-                }
+    with session_scope() as s:
+        protokolls = s.query(Protokoll).filter(Protokoll.operation_end == None).all()
+        active_alerts = []
+        for protokoll in protokolls:
+            alert = (
+                s.query(Alarmierung)
+                .filter(Alarmierung.alert_id == protokoll.alert_id)
+                .first()
             )
-
-    return active_alerts
+            if alert:
+                active_alerts.append(
+                    {
+                        "id": alert.alert_id,
+                        "alert_received": alert.alert_received,
+                        "alert_type": alert.alert_type,
+                        "symptom": alert.symptom,
+                    }
+                )
+        return active_alerts

@@ -146,7 +146,7 @@ class AlertPage(tb.Frame):
         self.birth_entry.pack(pady=10)
 
         symptom_combobox = tb.Combobox(
-            self, values=["Bauchweh", "Schürfwunde", "SSchnittwunde", "Übelkeit", "Kopfschmerzen"]
+            self, values=["Bauchweh", "Schürfwunde", "Schnittwunde", "Übelkeit", "Kopfschmerzen"]
         )
         symptom_combobox.set("Symptome")
         symptom_combobox.pack(pady=10)
@@ -631,7 +631,7 @@ class UserManagementPage(tb.Frame):
         card_number = read_rfid_uid()
         if card_number:
             self.children["!placeholderentry3"].delete(0, "end")
-            self.children["!placeholderentry3"].insert(0, card_number[4:])
+            self.children["!placeholderentry3"].insert(0, card_number)
         else:
             messagebox.showerror("Fehler", "Keine Kartennummer gelesen.")
 
@@ -692,7 +692,6 @@ class MaterialManagementPage(tb.Frame):
         self.material_treeview.heading("Mindestvorrat", text="Mindestvorrat")
         self.material_treeview.heading("Ablaufdatum", text="Ablaufdatum")
 
-
         self.name_entry = PlaceholderEntry(left_frame, "Materialname")
         self.name_entry.pack(pady=10)
 
@@ -705,14 +704,45 @@ class MaterialManagementPage(tb.Frame):
         self.expiration_entry = DateEntry(left_frame)
         self.expiration_entry.pack(pady=10)
 
+        # Button-Frame für die Aktionen
+        button_frame = tb.Frame(left_frame)
+        button_frame.pack(pady=10, padx=100)
+
         add_button = tb.Button(
-            left_frame,
-            text="Material hinzufügen",
+            button_frame,
+            text="Hinzufügen",
             style="success",
-            width=20,
-            command=self.save_changes,
+            width=15,
+            command=self.add_material,
         )
-        add_button.pack(pady=10, padx=100)
+        add_button.pack(pady=5)
+
+        update_button = tb.Button(
+            button_frame,
+            text="Aktualisieren",
+            style="warning",
+            width=15,
+            command=self.update_material,
+        )
+        update_button.pack(pady=5)
+
+        delete_button = tb.Button(
+            button_frame,
+            text="Löschen",
+            style="danger",
+            width=15,
+            command=self.delete_material,
+        )
+        delete_button.pack(pady=5)
+
+        clear_button = tb.Button(
+            button_frame,
+            text="Felder leeren",
+            style="secondary",
+            width=15,
+            command=self.clear_fields,
+        )
+        clear_button.pack(pady=5)
 
         self.load_materials(self.material_treeview)
 
@@ -748,15 +778,27 @@ class MaterialManagementPage(tb.Frame):
         if selected:
             selected_material_data = self.material_treeview.item(selected[0], "values")
             self.selected_material = selected_material_data[0]
-            # Lösung 1: Direkte Referenzen auf die Widgets speichern
+
+            # Felder füllen
             self.name_entry.delete(0, "end")
             self.name_entry.insert(0, selected_material_data[1])
+
             self.quantity_entry.delete(0, "end")
             self.quantity_entry.insert(0, selected_material_data[2])
+
             self.min_quantity_entry.delete(0, "end")
             self.min_quantity_entry.insert(0, selected_material_data[3])
-            self.expiration_entry.entry.delete(0, "end")
-            self.expiration_entry.entry.insert(0, str(selected_material_data[4]))
+
+            # Datum konvertieren: von YYYY-MM-DD HH:MM:SS zu DD.MM.YY
+            date_str = str(selected_material_data[4])
+            try:
+                date_obj = datetime.datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
+                formatted_date = date_obj.strftime("%d.%m.%y")
+                self.expiration_entry.entry.delete(0, "end")
+                self.expiration_entry.entry.insert(0, formatted_date)
+            except ValueError:
+                self.expiration_entry.entry.delete(0, "end")
+                self.expiration_entry.entry.insert(0, date_str)
 
             print(f"Ausgewähltes Material: {self.selected_material}")
 
@@ -767,27 +809,142 @@ class MaterialManagementPage(tb.Frame):
             # Auf leeren Bereich geklickt -> alles deselektieren
             self.material_treeview.selection_remove(self.material_treeview.selection())
             self.selected_material = None
+            self.clear_fields()
             print("Auswahl aufgehoben")
 
-    def save_changes(self):
+    def clear_fields(self):
+        """Leert alle Eingabefelder"""
+        self.name_entry.delete(0, "end")
+        self.quantity_entry.delete(0, "end")
+        self.min_quantity_entry.delete(0, "end")
+        self.expiration_entry.entry.delete(0, "end")
+        self.selected_material = None
+
+    def add_material(self):
+        """Fügt ein neues Material hinzu"""
         try:
             name = self.name_entry.get().strip()
-            quantity = int(self.quantity_entry.get().strip())
-            min_quantity = int(self.min_quantity_entry.get().strip())
+            if not name or name == "Materialname":
+                messagebox.showerror("Fehler", "Bitte geben Sie einen Materialnamen ein.")
+                return
+
+            quantity_str = self.quantity_entry.get().strip()
+            if not quantity_str or quantity_str == "Menge":
+                messagebox.showerror("Fehler", "Bitte geben Sie eine Menge ein.")
+                return
+            quantity = int(quantity_str)
+
+            min_quantity_str = self.min_quantity_entry.get().strip()
+            if not min_quantity_str or min_quantity_str == "Mindestvorrat":
+                messagebox.showerror("Fehler", "Bitte geben Sie einen Mindestvorrat ein.")
+                return
+            min_quantity = int(min_quantity_str)
+
             expiration = self.expiration_entry.entry.get().strip()
+            if not expiration:
+                messagebox.showerror("Fehler", "Bitte geben Sie ein Ablaufdatum ein.")
+                return
 
             # Datum in das richtige Format konvertieren
             expiration_date = datetime.datetime.strptime(expiration, "%d.%m.%y").strftime("%Y-%m-%d")
 
             # Material hinzufügen
             materials_crud.add_material(name, quantity, min_quantity, expiration_date)
-            messagebox.showinfo("Erfolg", "Material erfolgreich gespeichert.")
+            messagebox.showinfo("Erfolg", "Material erfolgreich hinzugefügt.")
             self.load_materials(self.material_treeview)
-        except ValueError:
-            messagebox.showerror("Fehler", "Bitte geben Sie gültige Werte ein.")
+            self.clear_fields()
+
+        except ValueError as e:
+            error_msg = str(e)
+            if "invalid literal for int()" in error_msg:
+                messagebox.showerror("Fehler", "Menge und Mindestvorrat müssen Zahlen sein.")
+            elif "time data" in error_msg or "does not match format" in error_msg:
+                messagebox.showerror("Fehler", "Ungültiges Datumsformat. Verwenden Sie TT.MM.JJ (z.B. 25.12.24)")
+            else:
+                messagebox.showerror("Fehler", f"Ungültige Eingabe: {error_msg}")
         except Exception as e:
             messagebox.showerror("Fehler", f"Ein Fehler ist aufgetreten: {str(e)}")
 
+    def update_material(self):
+        """Aktualisiert ein ausgewähltes Material"""
+        if not self.selected_material:
+            messagebox.showwarning("Warnung", "Bitte wählen Sie ein Material aus der Liste aus.")
+            return
+
+        try:
+            name = self.name_entry.get().strip()
+            if not name or name == "Materialname":
+                messagebox.showerror("Fehler", "Bitte geben Sie einen Materialnamen ein.")
+                return
+
+            quantity_str = self.quantity_entry.get().strip()
+            if not quantity_str or quantity_str == "Menge":
+                messagebox.showerror("Fehler", "Bitte geben Sie eine Menge ein.")
+                return
+            quantity = int(quantity_str)
+
+            min_quantity_str = self.min_quantity_entry.get().strip()
+            if not min_quantity_str or min_quantity_str == "Mindestvorrat":
+                messagebox.showerror("Fehler", "Bitte geben Sie einen Mindestvorrat ein.")
+                return
+            min_quantity = int(min_quantity_str)
+
+            expiration = self.expiration_entry.entry.get().strip()
+            if not expiration:
+                messagebox.showerror("Fehler", "Bitte geben Sie ein Ablaufdatum ein.")
+                return
+
+            # Datum in das richtige Format konvertieren
+            expiration_date = datetime.datetime.strptime(expiration, "%d.%m.%y").strftime("%Y-%m-%d")
+
+            # Material aktualisieren
+            materials_crud.update_material(
+                self.selected_material,
+                name,
+                quantity,
+                expiration_date,
+                min_quantity
+            )
+            messagebox.showinfo("Erfolg", "Material erfolgreich aktualisiert.")
+            self.load_materials(self.material_treeview)
+            self.clear_fields()
+
+        except ValueError as e:
+            error_msg = str(e)
+            if "invalid literal for int()" in error_msg:
+                messagebox.showerror("Fehler", "Menge und Mindestvorrat müssen Zahlen sein.")
+            elif "time data" in error_msg or "does not match format" in error_msg:
+                messagebox.showerror("Fehler", "Ungültiges Datumsformat. Verwenden Sie TT.MM.JJ (z.B. 25.12.24)")
+            else:
+                messagebox.showerror("Fehler", f"Ungültige Eingabe: {error_msg}")
+        except Exception as e:
+            messagebox.showerror("Fehler", f"Ein Fehler ist aufgetreten: {str(e)}")
+
+    def delete_material(self):
+        """Löscht ein ausgewähltes Material"""
+        if not self.selected_material:
+            messagebox.showwarning("Warnung", "Bitte wählen Sie ein Material aus der Liste aus.")
+            return
+
+        # Bestätigung vom Benutzer einholen
+        selected = self.material_treeview.selection()
+        if selected:
+            selected_material_data = self.material_treeview.item(selected[0], "values")
+            material_name = selected_material_data[1]
+
+            confirm = messagebox.askyesno(
+                "Löschen bestätigen",
+                f"Möchten Sie das Material '{material_name}' wirklich löschen?"
+            )
+
+            if confirm:
+                try:
+                    materials_crud.delete_material(self.selected_material)
+                    messagebox.showinfo("Erfolg", "Material erfolgreich gelöscht.")
+                    self.load_materials(self.material_treeview)
+                    self.clear_fields()
+                except Exception as e:
+                    messagebox.showerror("Fehler", f"Fehler beim Löschen: {str(e)}")
 
 if __name__ == "__main__":
 

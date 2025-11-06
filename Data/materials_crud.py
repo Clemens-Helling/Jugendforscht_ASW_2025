@@ -2,7 +2,19 @@ import datetime
 
 from Data.models import Material, Protokoll, ProtokollMaterials
 from Data.setup_database import session
+from contextlib import contextmanager
 
+@contextmanager
+def session_scope():
+    """Bietet einen Transaktions-Umfang für die Datenbank-Session."""
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
 
 def add_material(material_name, quantity, min_qunataty, expires_at):
     """Fügt ein Material hinzu."""
@@ -44,7 +56,9 @@ def subtract_material_quantity(material_id, quantity):
     """Aktualisiert die Menge eines Materials."""
     material = session.query(Material).filter_by(material_id=material_id).first()
     if material:
-        material.quantity = material.quantity - quantity
+        newQuantity = material.quantity - quantity
+        material.quantity = newQuantity
+        print(f"Neuer Bestand von {material.material_name}: {newQuantity}")
         session.commit()
         print(f"Material {material.material_name} aktualisiert.")
     else:
@@ -95,6 +109,7 @@ def add_material_to_protokoll(alert_id, material_name, quantity):
 
 def get_materials_by_protokoll(protokoll_id):
     """Gibt alle Materialien eines Protokolls zurück."""
+
     materials = (
         session.query(ProtokollMaterials).filter_by(protokoll_id=protokoll_id).all()
     )
@@ -164,3 +179,31 @@ def get_all_materials():
             }
         )
     return result
+
+def update_material(material_id, material_name=None, quantity=None, expires_at=None, minimum_stock=None):
+    """Aktualisiert die Daten eines Materials."""
+    material = session.query(Material).filter_by(material_id=material_id).first()
+    if not material:
+        print(f"Kein Material mit ID {material_id} gefunden.")
+        return
+
+    if material_name is not None:
+        material.material_name = material_name
+    if quantity is not None:
+        material.quantity = quantity
+    if expires_at is not None:
+        material.expires_at = expires_at
+    if minimum_stock is not None:
+        material.minimum_stock = minimum_stock
+
+    session.commit()
+    print(f"Material mit ID {material_id} aktualisiert.")
+
+def get_material_id_by_name(material_name):
+    """Gibt die Material-ID anhand des Materialnamens zurück."""
+    material = session.query(Material).filter_by(material_name=material_name).first()
+    if material:
+        return material.material_id
+    else:
+        print(f"Material {material_name} nicht gefunden.")
+        return None

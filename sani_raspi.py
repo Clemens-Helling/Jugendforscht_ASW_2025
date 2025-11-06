@@ -8,8 +8,8 @@ from ttkbootstrap.constants import *
 
 from Alert import alarm
 from Data import alerts_crud, patient_crud, protokoll_crud, users_crud
-from Data.materials_crud import (add_material_to_protokoll,
-                                 get_all_material_names)
+from Data.materials_crud import add_material_to_protokoll, get_all_material_names, subtract_material_quantity, get_material_id_by_name, check_low_stock
+from Data.users_crud import check_user_permisson
 from rfid.rfid import read_rfid_uid
 
 class ScrollableFrame(tb.Frame):
@@ -65,8 +65,8 @@ class App(tb.Window):
         # Benutzer startet als nicht eingeloggt
         self.is_logged_in = False
         self.alert_id = None
-        current_sani1 = None
-        current_sani2 = None
+        self.current_sani1 = None
+        self.current_sani2 = None
         # Navbar
         self.navbar = tb.Frame(self, style="dark")
         self.navbar.pack(side=TOP, fill=X)
@@ -135,6 +135,8 @@ class App(tb.Window):
         if page_name != "LoginPage" and not self.is_logged_in:
             print("Bitte zuerst einloggen")
             page_name = "LoginPage"
+        if page_name == "AlertsPage":
+            self.frames[page_name].load_alerts()
 
         frame = self.frames[page_name]
         frame.tkraise()
@@ -267,43 +269,58 @@ class AlertsPage(tb.Frame):
 
         tb.Label(self, text="Aktive Alarme", font=("Exo 2 ExtraBold", 16)).pack(pady=20)
 
-        # Frame für die Alarme erstellen
         self.alerts_frame = tb.Frame(self)
         self.alerts_frame.pack(fill=BOTH, expand=True, padx=20, pady=20)
 
-        # Refresh-Button
         tb.Button(
             self, text="Aktualisieren", bootstyle="secondary", command=self.load_alerts
         ).pack(side=BOTTOM, pady=10)
-
-        # Alarme laden
         self.load_alerts()
 
     def load_alerts(self):
-        """Lädt aktive Alarme und zeigt sie als Widgets an"""
-        # Bestehende Widgets entfernen
-        for widget in self.alerts_frame.winfo_children():
+        print("=== load_alerts wird aufgerufen ===")
+
+        # Bestehende Widgets zählen und entfernen
+        existing_widgets = self.alerts_frame.winfo_children()
+        print(f"Anzahl bestehender Widgets: {len(existing_widgets)}")
+
+        for widget in existing_widgets:
+            print(f"Entferne Widget: {widget}")
             widget.destroy()
 
-        # Alle aktiven Alarme abrufen
+        # Frame aktualisieren
+        self.alerts_frame.update_idletasks()
+        self.update()
+
+        # Aktive Alarme abrufen
         alerts = alerts_crud.get_all_active_alerts()
+        print(f"Anzahl geladener Alerts: {len(alerts)}")
+
+        for alert in alerts:
+            print(f"Alert: ID={alert['id']}, Symptom={alert['symptom']}, Type={alert['alert_type']}")
 
         if not alerts:
-            # Wenn keine aktiven Alarme vorhanden sind, Hinweis anzeigen
-            tb.Label(
+            label = tb.Label(
                 self.alerts_frame,
                 text="Keine aktiven Alarme vorhanden",
                 font=("Exo 2", 16),
                 bootstyle="secondary",
-            ).pack(expand=True)
+            )
+            label.grid(row=0, column=0, columnspan=4, pady=50)
+            print("Keine Alarme - Label erstellt")
             return
 
-        # Alarme als Grid von AlarmWidgets anzeigen
-        # Mehr Spalten (4 statt 3) für kleinere Widgets
-        cols_per_row = 4
+        # Grid-Spalten konfigurieren
+        for i in range(4):
+            self.alerts_frame.columnconfigure(i, weight=1)
 
+        # Alarm-Widgets erstellen
         for i, alert in enumerate(alerts):
-            # Alarm-Widget erstellen mit alert_id und symptom
+            row = i // 4
+            col = i % 4
+
+            print(f"Erstelle Widget {i}: row={row}, col={col}")
+
             widget = AlarmWidget(
                 parent=self.alerts_frame,
                 controller=self.controller,
@@ -311,17 +328,11 @@ class AlertsPage(tb.Frame):
                 symptom=alert["symptom"],
                 alert_type=alert["alert_type"],
             )
+            widget.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
+            print(f"Widget {i} erstellt und platziert")
 
-            # Grid-Layout berechnen (4 Spalten)
-            row = i // cols_per_row
-            col = i % cols_per_row
+        print("=== load_alerts beendet ===\n")
 
-            # Relative Positionen berechnen mit kleineren Breiten/Höhen
-            relx = col * 0.5 + 0.01
-            rely = row * 0.5 + 0.01
-
-            # Widget platzieren mit kleinerer Größe
-            widget.place(relx=relx, rely=rely, relwidth=0.4, relheight=0.5)
 
 
 class ProtokollPage(tb.Frame):
@@ -365,7 +376,23 @@ class ProtokollPage(tb.Frame):
         ).pack(pady=10)
 
     def add_health_data(self):
-        self.controller.show_frame("HealthDataPage")
+        if (
+                self.controller.current_sani1
+                and check_user_permisson(self.controller.current_sani1, "Admin")
+        ) or (
+                self.controller.current_sani1
+                and check_user_permisson(self.controller.current_sani1, "User")
+        ) or (
+                self.controller.current_sani2
+                and check_user_permisson(self.controller.current_sani2, "Admin")
+        ) or (
+                self.controller.current_sani2
+                and check_user_permisson(self.controller.current_sani2, "User")
+        ):
+            print("Zugriff auf Gesundheitsdaten erlaubt.")
+            self.controller.show_frame("HealthDataPage")
+        else:
+            print("Zugriff verweigert. Keine Berechtigung.")
 
     def protokoll_medic(self):
         sani1 = self.controller.current_sani1
@@ -431,6 +458,7 @@ class RegisterPatientPage(tb.Frame):
         self.birth_entry = DateEntry(self)
         self.birth_entry.pack(pady=10)
 
+
         tb.Button(
             self,
             text="Patient registrieren",
@@ -495,7 +523,17 @@ class MaterialPage(tb.Frame):
     def save_materials(self):
         for item in self.material_treeview.get_children():
             material, menge = self.material_treeview.item(item, "values")
+            material_id = get_material_id_by_name(material)
+            if material_id is None:
+                print(f"Material '{material}' nicht gefunden.")
+                continue
             add_material_to_protokoll(self.controller.alert_id, material, int(menge))
+            subtract_material_quantity(material_id, int(menge))
+            low_materials = check_low_stock()
+            if material in low_materials:
+                for low_material in low_materials[material]:
+                    alarm.add_material_alert(low_material["material_name"], "Material")
+
         print("Materialien gespeichert")
         protokoll_crud.close_alert(self.controller.alert_id)
         self.controller.show_frame("AlertsPage")

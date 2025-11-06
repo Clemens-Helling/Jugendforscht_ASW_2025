@@ -28,12 +28,35 @@ def add_alert(symtom, alert_type):
             "https://ntfy.sh/Rfaond6DyhQPMo8P",
             data=symtom.encode(encoding="utf-8"),
             headers={
-                "Title": "Wenig lagerbestand",
+                "Title": "Alarm",
                 "Priority": "urgent",
                 "Tags": "warning",
             },
         )
         return alert_id
+
+def add_material_alert(material_name, alert_type):
+    """Löst einen Alarm aus, wenn der Materialbestand niedrig ist und fügt den Alarm zur Datenbank hinzu.
+
+    Parameters
+    ----------
+    material_name : str
+        Name des Materials.
+    """
+    print("Material Alarm wurde ausgelöst")
+    alert_id = database.add_material_alert(material_name, alert_type)
+    print(f"Alert ID in alarm {alert_id}")
+    message = f"Niedriger Bestand: {material_name}"
+    requests.post(
+        "https://ntfy.sh/Rfaond6DyhQPMo8P",
+        data=message.encode(encoding="utf-8"),
+        headers={
+            "Title": "Material Alarm",
+            "Priority": "urgent",
+            "Tags": "warning",
+        },
+    )
+    return alert_id
 
 
 def send_message(message):
