@@ -3,6 +3,7 @@ import os
 import tkinter.font as tkFont
 from tkinter import filedialog, messagebox
 
+import dotenv
 import ttkbootstrap as tb
 from click import command
 from pyprinter import Printer
@@ -87,6 +88,13 @@ class App(tb.Window):
             style="dark",
             command=lambda: self.show_frame("MaterialManagementPage"),
         ).pack(side=LEFT, padx=5, pady=5)
+        tb.Button(
+            navbar,
+            text="Einstellungen",
+            style="dark",
+            command=lambda: self.show_frame("SettingsPage"),
+        ).pack(side=LEFT, padx=5, pady=5)
+
         tb.Button(navbar, text="Beenden", style="danger", command=self.destroy).pack(
             side=RIGHT, padx=5, pady=5
         )
@@ -110,6 +118,7 @@ class App(tb.Window):
             ElDataPage,
             UserManagementPage,
             MaterialManagementPage,
+            SettingsPage
         ):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
@@ -635,6 +644,85 @@ class UserManagementPage(tb.Frame):
         else:
             messagebox.showerror("Fehler", "Keine Kartennummer gelesen.")
 
+class SettingsPage(tb.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+
+        tb.Label(self, text="Einstellungen", font=("Exo 2 ExtraBold", 16)).pack(
+            pady=20
+        )
+
+        api_frame = tb.LabelFrame(self, text="API", bootstyle="info")
+        api_frame.pack(pady=10, padx=10, fill="x")
+        radio_frame = tb.Frame(api_frame)
+        radio_frame.pack(pady=10, padx=10, fill="x")
+        self.selected_option = tb.StringVar(value="Option 1")
+        tb.Radiobutton(
+            radio_frame,
+            text="Divera 24/7",
+            variable=self.selected_option,
+            value="Option 1",
+            bootstyle="info",
+            command= self.on_Radiobutton_select
+        ).pack(pady=10, anchor="w")
+
+        tb.Radiobutton(
+            radio_frame,
+            text="ntfy",
+            variable=self.selected_option,
+            value="Option 2",
+            bootstyle="info",
+            command= self.on_Radiobutton_select
+        ).pack(pady=10, anchor="w")
+
+        key_frame = tb.Frame(api_frame)
+        key_frame.pack(pady=10, padx=10, fill="x")
+
+        self.key_label = (tb.Label(key_frame, text="API-Schlüssel:"))
+        self.key_label.pack(side="left", padx=10, pady=10)
+
+        self.api_entry = tb.Entry(key_frame, width=50, )
+        self.api_entry.pack(side="left", padx=10, pady=10)
+
+
+
+        rci = tb.Frame(api_frame)
+        rci.pack(pady=10, padx=10, fill="x")
+
+        self.rci_label = tb.Label(rci, text="RCI:")
+
+
+        self.rci_entry = tb.Entry(rci, width=50, )
+
+
+        tb.Button(
+            api_frame,
+            text="Speichern",
+            style="success",
+            command=self.save_api_key,
+        ).pack(side="left", padx=10, pady=10)
+
+
+    def save_api_key(self):
+        pass
+
+    def on_Radiobutton_select(self):
+        selected = self.selected_option.get()
+        print(selected)
+        if selected == "Option 1":
+            print("Divera 24/7 ausgewählt")
+            self.rci_label.pack(side="left", padx=10, pady=10)
+            self.rci_entry.pack(side="left", padx=63, pady=10)
+            self.key_label.config(text="API-Schlüssel:")
+
+        else:
+            print("ntfy ausgewählt")
+            self.rci_entry.forget()
+            self.rci_label.forget()
+            self.key_label.configure(text="Ntfy Topic:")
+
+
 
 class MaterialManagementPage(tb.Frame):
     def __init__(self, parent, controller):
@@ -947,6 +1035,7 @@ class MaterialManagementPage(tb.Frame):
                     messagebox.showerror("Fehler", f"Fehler beim Löschen: {str(e)}")
 
 if __name__ == "__main__":
-
+    dotenv.load_dotenv(dotenv_path=r"C:\Users\cleme\Desktop\JugendForscht\Jugendforscht_ASW_2025\sanilink.env")
     app = App()
     app.mainloop()
+

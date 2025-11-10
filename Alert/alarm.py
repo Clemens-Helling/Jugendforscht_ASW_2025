@@ -1,10 +1,15 @@
 import requests
-
+import os
+from dotenv import load_dotenv
 import Data.alerts_crud as database
 
 error = ""
+load_dotenv(dotenv_path=r"C:\Users\cleme\Desktop\JugendForscht\Jugendforscht_ASW_2025\sanilink.env")
 
-
+# Zugriff auf die Variablen
+divera_api_url = os.getenv("DIVERA_API_URL")
+divera_accesskey = os.getenv("DIVERA_API_ACCESSKEY")
+load_dotenv()
 def add_alert(symtom, alert_type):
     """Löst einen Alarm aus, wenn ein Symptom ausgewählt wurde und fügt den Alarm zur Datenbank hinzu.
 
@@ -25,13 +30,9 @@ def add_alert(symtom, alert_type):
         alert_id = database.add_alert(symtom, alert_type)
         print(f"Alert ID in alarm {alert_id}")
         requests.post(
-            "https://ntfy.sh/Rfaond6DyhQPMo8P",
-            data=symtom.encode(encoding="utf-8"),
-            headers={
-                "Title": "Alarm",
-                "Priority": "urgent",
-                "Tags": "warning",
-            },
+            divera_api_url,
+            params={"accesskey": divera_accesskey},
+            data={"type": symtom, "priority": "high", "ric": "SaniLink"},
         )
         return alert_id
 
@@ -48,13 +49,8 @@ def add_material_alert(material_name, alert_type):
     print(f"Alert ID in alarm {alert_id}")
     message = f"Niedriger Bestand: {material_name}"
     requests.post(
-        "https://ntfy.sh/Rfaond6DyhQPMo8P",
-        data=message.encode(encoding="utf-8"),
-        headers={
-            "Title": "Material Alarm",
-            "Priority": "urgent",
-            "Tags": "warning",
-        },
+        "https://www.divera247.com/api/alarm?accesskey=_h4Gk6GtrGo5jU6PocoxHsnWD2YNwcbnccKDQA2qFI8x0XwbGIyaA3Uri_tKjh-v",
+
     )
     return alert_id
 
@@ -71,3 +67,4 @@ def send_message(message):
         "https://ntfy.sh/2sISQuW9tQgMpCmS", data=message.encode(encoding="utf-8")
     )
     print("Nachricht gesendet")
+
