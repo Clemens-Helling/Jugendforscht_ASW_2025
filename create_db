@@ -1,0 +1,119 @@
+create table alarmierungen
+(
+    alert_id       int auto_increment
+        primary key,
+    alert_received datetime     null,
+    alert_type     varchar(255) null,
+    symptom        varchar(255) null
+);
+
+create table materials
+(
+    material_id   int auto_increment
+        primary key,
+    material_name varchar(255) null,
+    quantity      int          null,
+    expires_at    datetime     null,
+    minimum_stock int          null
+);
+
+create table patient
+(
+    id             int auto_increment,
+    pseudonym      varchar(255) not null
+        primary key,
+    real_name      blob         null,
+    real_last_name blob         null,
+    birth_day      blob         null,
+    created_at     datetime     null,
+    constraint patient_pk
+        unique (id)
+);
+
+create table teachers
+(
+    teacher_id int auto_increment
+        primary key,
+    first_name varchar(255) null,
+    last_name  varchar(255) null,
+    house      varchar(255) null
+);
+
+create table protokolle
+(
+    protokoll_id        int auto_increment
+        primary key,
+    alert_id            int          null,
+    pseudonym           varchar(255) null,
+    teacher_id          int          null,
+    operation_end       datetime     null,
+    status              varchar(255) null,
+    pulse               int          null,
+    spo2                int          null,
+    blood_pressure      varchar(255) null,
+    temperature         float        null,
+    blood_sugar         float        null,
+    pain                varchar(255) null,
+    measures            text         null,
+    abhol_massnahme     varchar(255) null,
+    parents_notified_by varchar(255) null,
+    parents_notified_at datetime     null,
+    hospital            varchar(255) null,
+    medic_id            int          null,
+    constraint protokolle_ibfk_1
+        foreign key (alert_id) references alarmierungen (alert_id),
+    constraint protokolle_ibfk_2
+        foreign key (pseudonym) references patient (pseudonym),
+    constraint protokolle_ibfk_3
+        foreign key (teacher_id) references teachers (teacher_id)
+);
+
+create table protokoll_materials
+(
+    material_protokoll_id int auto_increment
+        primary key,
+    protokoll_id          int null,
+    material_id           int null,
+    quantity              int null,
+    constraint fk_material_id
+        foreign key (material_id) references materials (material_id),
+    constraint fk_protokoll_id
+        foreign key (protokoll_id) references protokolle (protokoll_id)
+);
+
+create index protokolle_ibfk_4
+    on protokolle (medic_id);
+
+create index pseudonym
+    on protokolle (pseudonym);
+
+create table users
+(
+    User_ID       int auto_increment
+        primary key,
+    name          varchar(255) null,
+    last_name     varchar(255) null,
+    lernbegleiter int          null,
+    karten_nummer varchar(255) null,
+    permission    varchar(255) null,
+    constraint fk_users_lernbegleiter
+        foreign key (lernbegleiter) references teachers (teacher_id)
+);
+
+create table sani_protokoll
+(
+    sani_protokoll_id int auto_increment
+        primary key,
+    sani1             int null,
+    sani2             int null,
+    operationsmanager int null,
+    protokoll_id      int null,
+    constraint fk_sani1_id
+        foreign key (sani1) references users (User_ID),
+    constraint fk_sani2_id
+        foreign key (sani2) references users (User_ID),
+    constraint protokoll_id
+        foreign key (protokoll_id) references protokolle (protokoll_id)
+);
+
+

@@ -93,12 +93,16 @@ class App(tb.Window):
             command=lambda: self.show_frame("AlertsPage"),
         ).pack(side=LEFT, padx=5, pady=5)
 
+
         tb.Button(
             self.navbar, text="Beenden", style="danger", command=self.destroy
         ).pack(side=RIGHT, padx=5, pady=5)
         tb.Button(self.navbar, text="Logout", style="danger", command=self.logout).pack(
             side=RIGHT, padx=5, pady=5
         )
+        tb.Button(
+            self.navbar, text="SOS", style="danger", command=self.trigger_sos_alarm
+        ).pack(side=RIGHT, padx=5, pady=5)
 
         # Container für alle Seiten
         container = tb.Frame(self)
@@ -147,6 +151,10 @@ class App(tb.Window):
         self.current_sani2 = None
         self.alert_id = None
         self.show_frame("LoginPage")
+
+    def trigger_sos_alarm(self):
+        mbox.showinfo("SOS Alarm", "SOS Alarm wird ausgelöst!")
+        alarm.send_alert("Alarm aus dem Sani Raum")
 
 
 class AlertPage(tb.Frame):

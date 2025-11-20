@@ -34,18 +34,7 @@ def add_alert(symtom, alert_type):
         alert_id = database.add_alert(symtom, alert_type)
         print(f"Alert ID in alarm {alert_id}")
         print(f"Method: {method}")
-        if method == "Option 1":
-            print("Divera Alarm wird gesendet")
-            requests.post(
-                divera_api_url,
-                params={"accesskey": divera_accesskey},
-                data={"type": symtom, "priority": "high", "ric": divera_ric}
-            )
-        else: # ntfy
-            print("NTFY Alarm wird gesendet")
-            requests.post(
-                ntfy_url, data=f"Neuer Alarm: {symtom}".encode(encoding="utf-8")
-            )
+
         return alert_id
 
 def add_material_alert(material_name, alert_type):
@@ -79,7 +68,19 @@ def send_message(message):
         "https://ntfy.sh/2sISQuW9tQgMpCmS", data=message.encode(encoding="utf-8")
     )
     print("Nachricht gesendet")
-
+def send_alert(message):
+    if method == "Option 1":
+        print("Divera Alarm wird gesendet")
+        requests.post(
+            divera_api_url,
+            params={"accesskey": divera_accesskey},
+            data={"type": message, "priority": "high", "ric": divera_ric}
+        )
+    else:  # ntfy
+        print("NTFY Alarm wird gesendet")
+        requests.post(
+            ntfy_url, data=f"Neuer Alarm: {message}".encode(encoding="utf-8")
+        )
 if __name__ == "__main__":
     requests.post(
         divera_api_url,
