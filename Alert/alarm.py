@@ -1,15 +1,19 @@
 import requests
 import os
-from dotenv import load_dotenv
+import json
 import Data.alerts_crud as database
-
+from Data.settings_crud import get_user_settings
 error = ""
-load_dotenv(dotenv_path=r"C:\Users\cleme\Desktop\JugendForscht\Jugendforscht_ASW_2025\sanilink.env")
 
-# Zugriff auf die Variablen
-divera_api_url = os.getenv("DIVERA_API_URL")
-divera_accesskey = os.getenv("DIVERA_API_ACCESSKEY")
-load_dotenv()
+user_settings = get_user_settings(1)
+
+
+divera_accesskey = user_settings["divera_key"]
+divera_ric = user_settings.get("divera_ric", "SaniLink")
+divera_api_url = "https://www.divera247.com/api/alarm"
+ntfy_url = user_settings["ntfy_url"]
+method = user_settings["method"]
+
 def add_alert(symtom, alert_type):
     """Löst einen Alarm aus, wenn ein Symptom ausgewählt wurde und fügt den Alarm zur Datenbank hinzu.
 
@@ -29,11 +33,19 @@ def add_alert(symtom, alert_type):
         print("Alarm wurde ausgelöst")
         alert_id = database.add_alert(symtom, alert_type)
         print(f"Alert ID in alarm {alert_id}")
-        requests.post(
-            divera_api_url,
-            params={"accesskey": divera_accesskey},
-            data={"type": symtom, "priority": "high", "ric": "SaniLink"},
-        )
+        print(f"Method: {method}")
+        if method == "Option 1":
+            print("Divera Alarm wird gesendet")
+            requests.post(
+                divera_api_url,
+                params={"accesskey": divera_accesskey},
+                data={"type": symtom, "priority": "high", "ric": divera_ric}
+            )
+        else: # ntfy
+            print("NTFY Alarm wird gesendet")
+            requests.post(
+                ntfy_url, data=f"Neuer Alarm: {symtom}".encode(encoding="utf-8")
+            )
         return alert_id
 
 def add_material_alert(material_name, alert_type):
@@ -68,3 +80,9 @@ def send_message(message):
     )
     print("Nachricht gesendet")
 
+if __name__ == "__main__":
+    requests.post(
+        divera_api_url,
+        params={"accesskey": divera_accesskey},
+        data={"type": "Tset", "priority": "high", "ric": divera_ric}
+    )

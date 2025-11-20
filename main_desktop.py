@@ -12,7 +12,7 @@ from ttkbootstrap.constants import *
 
 from Alert import alarm
 from Data import (alerts_crud, materials_crud, patient_crud, protokoll_crud,
-                  users_crud)
+                  users_crud, settings_crud)
 from PDF.pdf import main
 from rfid.rfid import read_rfid_uid
 
@@ -700,12 +700,20 @@ class SettingsPage(tb.Frame):
             api_frame,
             text="Speichern",
             style="success",
-            command=self.save_api_key,
+            command= self.save_settings,
         ).pack(side="left", padx=10, pady=10)
 
 
-    def save_api_key(self):
-        pass
+    def save_settings(self):
+        method = self.selected_option.get()
+        api_key = self.api_entry.get().strip()
+        if method == "Option 1":
+            divera_ric = self.rci_entry.get().strip()
+            settings_crud.add_divera_settings(api_key, divera_ric)
+        else:
+            settings_crud.add_ntfy_settings(api_key)
+        settings_crud.add_notification_method(method)
+        messagebox.showinfo("Erfolg", "Einstellungen erfolgreich gespeichert.")
 
     def on_Radiobutton_select(self):
         selected = self.selected_option.get()

@@ -118,6 +118,16 @@ class Protokoll(Base):
         "SaniProtokoll", back_populates="protokoll", uselist=False
     )
 
+class UserSettings(Base):
+    __tablename__ = "user_settings"
+    setting_id = Column(Integer, primary_key=True, autoincrement=True)
+    notification_method = Column(String(100))
+    ntfy_url = Column(String(150))
+    divera_key = Column(String(250))
+    divera_ric = Column(String(150))
+
+    def __repr__(self):
+        return f"<UserSettings(setting_id={self.setting_id}, name={self.name}, value={self.value})>"
 
 if __name__ == "__main__":
     engine = create_engine(
