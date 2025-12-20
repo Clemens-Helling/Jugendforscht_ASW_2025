@@ -3,6 +3,16 @@ import os
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 
+from easy_logger.easy_logger import EasyLogger
+
+logger = EasyLogger(
+    name="CryptoModule",
+    level="INFO",
+    log_to_file=True,
+    log_to_console=False,
+    log_dir="logs",
+    log_file="crypto.log"
+)
 # Pfad zur Schlüsseldatei
 key_file_path = "key.key"
 

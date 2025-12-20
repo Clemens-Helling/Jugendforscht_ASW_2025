@@ -1,7 +1,13 @@
 from Data.models import UserSettings
 from Data.alerts_crud import session_scope
-
-
+from easy_logger.easy_logger import EasyLogger
+logger = EasyLogger(
+    name="UsersCRUD",
+    level="INFO",
+    log_to_file=True,
+    log_dir="logs",
+    log_file="database.log"
+)
 def get_user_settings(setting_id):
     with session_scope() as session:
         settings = (

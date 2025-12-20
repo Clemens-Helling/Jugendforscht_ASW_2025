@@ -3,6 +3,15 @@ import os
 import json
 import Data.alerts_crud as database
 from Data.settings_crud import get_user_settings
+from easy_logger.easy_logger import EasyLogger
+
+logger = EasyLogger(
+    name="AlarmModule",
+    level="INFO",
+    log_to_file=True,
+    log_to_console=False,
+    log_dir="logs",
+    log_file="alarm.log")
 error = ""
 
 user_settings = get_user_settings(1)
@@ -30,6 +39,7 @@ def add_alert(symtom, alert_type):
         print("keine Krankheit ausgewählt")
         return "keine Krankheit ausgewählt"
     else:
+        send_alert(symtom)
         print("Alarm wurde ausgelöst")
         alert_id = database.add_alert(symtom, alert_type)
         print(f"Alert ID in alarm {alert_id}")
@@ -70,17 +80,21 @@ def send_message(message):
     print("Nachricht gesendet")
 def send_alert(message):
     if method == "Option 1":
+        logger.info("Divera Alarm wird gesendet")
         print("Divera Alarm wird gesendet")
         requests.post(
             divera_api_url,
             params={"accesskey": divera_accesskey},
             data={"type": message, "priority": "high", "ric": divera_ric}
         )
+        logger.info("Alarm wird gesendet")
     else:  # ntfy
+        logger.info("NTFY Alarm wird gesendet")
         print("NTFY Alarm wird gesendet")
         requests.post(
             ntfy_url, data=f"Neuer Alarm: {message}".encode(encoding="utf-8")
         )
+
 if __name__ == "__main__":
     requests.post(
         divera_api_url,

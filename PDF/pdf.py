@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Einsatzprotokoll Generator mit ReportLab
-Erstellt ein ausgefülltes Einsatzprotokoll mit variablen Daten - mit zweiter Seite
-"""
+
 
 import os
 from datetime import datetime

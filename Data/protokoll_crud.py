@@ -7,7 +7,15 @@ from Data.models import (Alarmierung, Material, Patient, Protokoll,
                          ProtokollMaterials, Teacher)
 from Data.patient_crud import get_patient_by_pseudonym, get_pseudonym_by_name
 from Data.setup_database import session
+from easy_logger.easy_logger import EasyLogger
 
+logger = EasyLogger(
+    name="UsersCRUD",
+    level="INFO",
+    log_to_file=True,
+    log_dir="logs",
+    log_file="database.log"
+)
 
 def update_status(alert_id, status):
     """Aktualisiert den Status eines Protokolls."""
@@ -359,4 +367,6 @@ def prepare_pdf_data(alert_id):
     }
 
     print("DEBUG prepare_pdf_data personal count:", len(personal_list))
+    logger.info(f"created pdf_data for alert_id {alert_id}")
     return pdf_data
+

@@ -3,7 +3,15 @@ import json
 
 from Data.models import Protokoll, SaniProtokoll, Teacher, User
 from Data.setup_database import session
+from easy_logger.easy_logger import EasyLogger
 
+logger = EasyLogger(
+    name="UsersCRUD",
+    level="INFO",
+    log_to_file=True,
+    log_dir="logs",
+    log_file="database.log"
+)
 
 def add_user(name, last_name, lernbegleiter, kartennummer, permission):
     """Fügt einen Benutzer hinzu."""
@@ -14,9 +22,11 @@ def add_user(name, last_name, lernbegleiter, kartennummer, permission):
         karten_nummer=kartennummer,
         permission=permission,
     )
+
+
     session.add(user)
     session.commit()
-    print(f"Benutzer {name} {last_name} hinzugefügt.")
+    logger.info(f"User {name} {last_name} added with card {kartennummer}.")
 
 
 def add_sani1(card_number, alert_id):
@@ -189,7 +199,9 @@ def get_sani_protokoll_id_by_alert_id(alert_id):
 
 def get_user_by_card_number(card_number):
     """Gibt einen Benutzer anhand seiner Karten­nummer zurück."""
-    user = session.query(User).filter_by(karten_nummer=card_number).first()
+    user = session.query(User).filter(
+        User.karten_nummer == card_number, User.permission != "deactivated"
+    ).first()
     if user:
         return {
             "User_ID": user.User_ID,
@@ -200,6 +212,7 @@ def get_user_by_card_number(card_number):
             "permission": user.permission,
         }
     else:
+        logger.warning(f"Karte {card_number} nicht gefunden.")
         print(f"Kein Benutzer mit Karten­nummer {card_number} gefunden.")
         return None
 
@@ -249,6 +262,7 @@ def update_user(
         user.permission = permission
 
     session.commit()
+    logger.info(f"User {user.name} updated.")
     print(f"Benutzer mit ID {user_id} aktualisiert.")
 
 
@@ -260,20 +274,25 @@ def delete_user(user_id):
         return
     user.permission = "deactivated"
     session.commit()
+    logger.info(f"User {user.name} deleted.")
 
 
 def check_user_permisson(card_number, required_permission):
     """Überprüft, ob ein Benutzer die erforderliche Berechtigung hat."""
-    user = session.query(User).filter_by(karten_nummer=card_number).first()
+    user = session.query(User).filter(
+        User.karten_nummer == card_number, User.permission != "deactivated").first()
     if not user:
         print(f"Kein Benutzer mit Karten­nummer {card_number} gefunden.")
+        logger.info(f"Faild login attempt with card number {card_number} for permission {required_permission}")
         return False
 
     if user.permission == required_permission or user.permission == "admin":
         return True
     else:
+        logger.info(f"Faild login from {user.name} {user.last_name} for permission {required_permission}")
         return False
 
 
 if __name__ == "__main__":
-    delete_user(3)
+   logger.info("Users CRUD Modul ausgeführt.")
+   print(get_user_by_card_number("7C42D67A"))

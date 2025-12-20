@@ -229,6 +229,7 @@ class AboutPage(tb.Frame):
         search_last_name_entry.pack(pady=10)
         self.search_birthdate_entry = DateEntry(self)
         self.search_birthdate_entry.pack(pady=10)
+        self.search_birthdate_entry.bind("<Return>",  self.search_alerts)
 
         tb.Button(
             self,
@@ -260,7 +261,7 @@ class AboutPage(tb.Frame):
             {}
         )  # Mapping von Treeview-Item-ID zu Protokoll-Daten
 
-    def search_alerts(self):
+    def search_alerts(self, event=None):
         for item in self.result_table.get_children():
             self.result_table.delete(item)
         self.protokoll_data_by_item.clear()
@@ -848,7 +849,8 @@ class MaterialManagementPage(tb.Frame):
 
         # Tag für rote Schrift definieren
         treeview.tag_configure("low_stock", foreground="red")
-
+        treeview.tag_configure("expired", foreground="#FFA500")
+        current_date = datetime.datetime.now().date()
         for material in materials:
             if isinstance(material, dict):
                 safe_values = [
@@ -863,11 +865,26 @@ class MaterialManagementPage(tb.Frame):
             else:
                 safe_values = [str(v) for v in material]
 
-            # Bedingung prüfen und Tag anwenden
+
+            tags = []
+
+
             if int(safe_values[2]) <= int(safe_values[3]):  # Menge <= Mindestvorrat
-                treeview.insert("", "end", values=safe_values, tags=("low_stock",))
-            else:
-                treeview.insert("", "end", values=safe_values)
+               tags.append("low_stock")
+
+
+            expiration_date = datetime.datetime.strptime(safe_values[4], "%Y-%m-%d %H:%M:%S").date()
+            if expiration_date < current_date:
+               tags.append("expired")
+
+
+            treeview.insert("", "end", values=safe_values, tags=tuple(tags))
+
+
+
+
+
+
 
     def on_row_click(self, event):
         selected = self.material_treeview.selection()

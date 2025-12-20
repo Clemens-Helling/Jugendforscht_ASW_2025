@@ -11,6 +11,9 @@ from Data import alerts_crud, patient_crud, protokoll_crud, users_crud
 from Data.materials_crud import add_material_to_protokoll, get_all_material_names, subtract_material_quantity, get_material_id_by_name, check_low_stock
 from Data.users_crud import check_user_permisson
 from rfid.rfid import read_rfid_uid
+from easy_logger.easy_logger import EasyLogger
+
+logger = EasyLogger("SaniRaspiApp")
 
 class ScrollableFrame(tb.Frame):
     def __init__(self, parent, *args, **kwargs):
