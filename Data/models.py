@@ -1,7 +1,7 @@
 import datetime
 
 from sqlalchemy import (BLOB, Column, DateTime, Float, ForeignKey, Integer,
-                        String, Text, create_engine)
+                        String, Text, create_engine, Boolean)
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
@@ -56,7 +56,7 @@ class Material(Base):
     quantity = Column(Integer)
     expires_at = Column(DateTime)  # In MySQL vorhanden
     minimum_stock = Column(Integer)
-
+    reuseable = Column(Boolean)
     protokoll_materials = relationship("ProtokollMaterials", back_populates="material")
 
 

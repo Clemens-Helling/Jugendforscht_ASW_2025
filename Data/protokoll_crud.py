@@ -1,14 +1,19 @@
 import datetime
 import json
 
+from IPython.core.magic_arguments import real_name
+
 import Data.users_crud as user_crud
 from Data import crypto
+from Data.alerts_crud import get_alert_by_id
+from Data.crypto import decrypt
 from Data.models import (Alarmierung, Material, Patient, Protokoll,
                          ProtokollMaterials, Teacher)
 from Data.patient_crud import get_patient_by_pseudonym, get_pseudonym_by_name
 from Data.setup_database import session
+from Data.users_crud import get_teacher_name_by_id
 from easy_logger.easy_logger import EasyLogger
-
+from contextlib import contextmanager
 logger = EasyLogger(
     name="UsersCRUD",
     level="INFO",
@@ -16,7 +21,17 @@ logger = EasyLogger(
     log_dir="logs",
     log_file="database.log"
 )
-
+@contextmanager
+def session_scope():
+    """Bietet einen Transaktions-Umfang für die Datenbank-Session."""
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
 def update_status(alert_id, status):
     """Aktualisiert den Status eines Protokolls."""
     protokoll = session.query(Protokoll).filter_by(alert_id=alert_id).first()
@@ -370,3 +385,86 @@ def prepare_pdf_data(alert_id):
     logger.info(f"created pdf_data for alert_id {alert_id}")
     return pdf_data
 
+
+def get_all_open_protokolls():
+    """Gibt alle offenen Protokolle zurück."""
+    logger.info("=== get_all_open_protokolls wird aufgerufen ===")
+
+    try:
+        with session_scope() as db_session:
+            protokolls = db_session.query(Protokoll).filter(Protokoll.status != "geschlossen").all()
+            logger.info(f"Anzahl gefundener offener Protokolle in DB: {len(protokolls)}")
+            result = []
+
+            for protokoll in protokolls:
+                try:
+                    logger.info(f"Verarbeite Protokoll {protokoll.alert_id} mit Status: {protokoll.status}")
+                    patient = get_patient_by_pseudonym(protokoll.pseudonym)
+                    alert = get_alert_by_id(protokoll.alert_id)
+                    teacher_name = get_teacher_name_by_id(protokoll.teacher_id)
+
+                    # Debug: Patient-Objekt prüfen
+                    logger.info(f"Patient-Typ: {type(patient)}")
+
+                    if not patient:
+                        patient_name = "Unbekannt"
+                        patient_birth_day = "Unbekannt"
+                    else:
+                        # Prüfen ob patient ein Dict oder Objekt ist
+                        if isinstance(patient, dict):
+                            # Patient ist ein Dictionary
+                            first_name = safe_decrypt(patient.get('real_name')) or "Unbekannt"
+                            last_name = safe_decrypt(patient.get('real_last_name')) or "Unbekannt"
+                            birth_day = patient.get('birth_day')
+                        else:
+                            # Patient ist ein Objekt
+                            first_name = safe_decrypt(getattr(patient, 'real_name', None)) or "Unbekannt"
+                            last_name = safe_decrypt(getattr(patient, 'real_last_name', None)) or "Unbekannt"
+                            birth_day = getattr(patient, 'birth_day', None)
+
+                        patient_name = f"{first_name} {last_name}".strip()
+                        birth_dt = _to_datetime(birth_day) if birth_day else None
+                        patient_birth_day = birth_dt.strftime("%d.%m.%Y") if birth_dt else "Unbekannt"
+
+                    result.append({
+                        "alert_id": protokoll.alert_id,
+                        "status": protokoll.status,
+                        "name": patient_name,
+                        "birth_day": patient_birth_day,
+                        "symptom": alert.get("symptom") if isinstance(alert, dict) else (alert.symptom if alert else "Unbekannt"),
+                        "alert_received": alert.get("alert_received") if isinstance(alert, dict) else (alert.alert_received if alert else "Unbekannt"),
+                        "operation_end": protokoll.operation_end,
+                        "teacher": teacher_name or "Unbekannt",
+                        "pulse": protokoll.pulse,
+                        "spo2": protokoll.spo2,
+                        "blood_pressure": protokoll.blood_pressure,
+                        "temperature": protokoll.temperature,
+                        "blood_sugar": protokoll.blood_sugar,
+                        "pain_level": protokoll.pain,
+                        "abhol_massnahme": protokoll.abhol_massnahme,
+                        "parents_notified_by": protokoll.parents_notified_by,
+                        "parents_notified_at": protokoll.parents_notified_at,
+                        "hospital": protokoll.hospital,
+                    })
+                except Exception as e:
+                    logger.error(f"Fehler beim Verarbeiten von Protokoll {protokoll.alert_id}: {e}")
+                    continue
+
+            logger.info(f"=== get_all_open_protokolls beendet - {len(result)} Protokolle zurückgegeben ===")
+            return result
+
+    except Exception as e:
+        logger.error(f"Fehler beim Laden der offenen Protokolle: {e}")
+        return []
+def convert_alert_to_protokoll_id(alert_id):
+    """Konvertiert eine Alert-ID in eine Protokoll-ID."""
+    with session_scope() as s:
+        protokoll = s.query(Protokoll).filter_by(alert_id=alert_id).first()
+        if protokoll:
+            return protokoll.protokoll_id
+        else:
+            print(f"Kein Protokoll mit alert_id {alert_id} gefunden.")
+            return None
+
+if __name__ == "__main__":
+    print(convert_alert_to_protokoll_id(145))

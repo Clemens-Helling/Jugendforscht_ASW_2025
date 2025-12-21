@@ -8,7 +8,9 @@ from ttkbootstrap.constants import *
 
 from Alert import alarm
 from Data import alerts_crud, patient_crud, protokoll_crud, users_crud
-from Data.materials_crud import add_material_to_protokoll, get_all_material_names, subtract_material_quantity, get_material_id_by_name, check_low_stock
+from Data.materials_crud import add_material_to_protokoll, get_all_material_names, subtract_material_quantity, \
+    get_material_id_by_name, check_low_stock, get_material, get_material_name_by_id, get_materials_by_protokoll_id
+from Data.protokoll_crud import update_status, convert_alert_to_protokoll_id
 from Data.users_crud import check_user_permisson
 from rfid.rfid import read_rfid_uid
 from easy_logger.easy_logger import EasyLogger
@@ -66,10 +68,12 @@ class App(tb.Window):
         # Zusätzlich für Windows-Taskleiste
 
         # Benutzer startet als nicht eingeloggt
-        self.is_logged_in = False
+        self.is_logged_in = True
         self.alert_id = None
         self.current_sani1 = None
         self.current_sani2 = None
+        # alert_id für die Rückgabedes Materials+
+        self.selected_alert = None
         # Navbar
         self.navbar = tb.Frame(self, style="dark")
         self.navbar.pack(side=TOP, fill=X)
@@ -94,6 +98,13 @@ class App(tb.Window):
             text="Alarme",
             style="dark",
             command=lambda: self.show_frame("AlertsPage"),
+        ).pack(side=LEFT, padx=5, pady=5)
+
+        tb.Button(
+            self.navbar,
+            text="Wartende Einsätze",
+            style="dark",
+            command=lambda: self.show_frame("WaitingForMaterialPage"),
         ).pack(side=LEFT, padx=5, pady=5)
 
 
@@ -127,6 +138,8 @@ class App(tb.Window):
             RegisterPatientPage,
             HealthDataPage,
             MaterialPage,
+            WaitingForMaterialPage,
+            MaterialReturnPage
         ):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
@@ -144,6 +157,8 @@ class App(tb.Window):
             page_name = "LoginPage"
         if page_name == "AlertsPage":
             self.frames[page_name].load_alerts()
+        if page_name == "MaterialReturnPage":
+            self.frames[page_name].load_materials()
 
         frame = self.frames[page_name]
         frame.tkraise()
@@ -358,6 +373,7 @@ class ProtokollPage(tb.Frame):
         self.teacher_combobox = tb.Combobox(self, values=lehrer_liste)
         self.teacher_combobox.set("Lehrer")
         self.teacher_combobox.pack(pady=10)
+        self.setup_searchable_combobox(self.teacher_combobox, lehrer_liste)
 
         self.measure_combobox = tb.Combobox(
             self, values=["Tee", "Wundversorgung", "Rettungsdienst", "Traubenzucker"]
@@ -456,6 +472,24 @@ class ProtokollPage(tb.Frame):
             mbox.showerror("Fehler", "Karte nicht erkannt.")
             print("Karte nicht erkannt.")
 
+    def setup_searchable_combobox(self, combobox, values):
+        """Macht die Combobox durchsuchbar während du tippst"""
+
+        def on_keyrelease(event):
+            # Aktuellen eingegebenen Text holen
+            typed = combobox.get().lower()
+
+            # Wenn nichts eingegeben, alle Werte zeigen
+            if typed == '':
+                combobox['values'] = values
+            else:
+                # Filtern nach eingegebenem Text
+                filtered = [item for item in values if typed in item.lower()]
+                combobox['values'] = filtered
+
+        # KeyRelease Event binden
+        combobox.bind('<KeyRelease>', on_keyrelease)
+
 
 class RegisterPatientPage(tb.Frame):
     def __init__(self, parent, controller):
@@ -532,12 +566,17 @@ class MaterialPage(tb.Frame):
         self.material_treeview.insert("", "end", values=(material, menge))
 
     def save_materials(self):
+        reusable_found = False  # Variable muss initialisiert werden
         for item in self.material_treeview.get_children():
             material, menge = self.material_treeview.item(item, "values")
             material_id = get_material_id_by_name(material)
+            material_info = get_material(material)
             if material_id is None:
                 print(f"Material '{material}' nicht gefunden.")
                 continue
+            if material_info['is_reuseable']:
+                reusable_found = True
+                update_status(self.controller.alert_id, f"wf {get_material_name_by_id(material_id)}")
             add_material_to_protokoll(self.controller.alert_id, material, int(menge))
             subtract_material_quantity(material_id, int(menge))
             low_materials = check_low_stock()
@@ -545,9 +584,16 @@ class MaterialPage(tb.Frame):
                 for low_material in low_materials[material]:
                     alarm.add_material_alert(low_material["material_name"], "Material")
 
-        print("Materialien gespeichert")
-        protokoll_crud.close_alert(self.controller.alert_id)
+        if not reusable_found:  # Nur schließen wenn kein wiederverwendbares Material gefunden wurde
+
+            protokoll_crud.close_alert(self.controller.alert_id)
+            print("Materialien gespeichert")
+
+        else:
+            print("Wiederverwendbares Material gefunden - Alarm bleibt offen für Reinigung")
         self.controller.show_frame("AlertsPage")
+
+
 
 
 class HealthDataPage(tb.Frame):
@@ -608,6 +654,117 @@ class HealthDataPage(tb.Frame):
         )
         self.controller.show_frame("ProtokollPage")
 
+class WaitingForMaterialPage(tb.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        tb.Label(self, text="Warte auf Material", font=("Exo 2 ExtraBold", 16)).pack(
+            pady=20
+        )
+
+        self.result_table = tb.Treeview(
+            self,
+            columns=("Alert ID", "Name", "Symptom", "Lehrkraft", "Status"),
+            show="headings",
+        )
+
+        self.result_table.heading("Alert ID", text="Alert ID")
+        self.result_table.heading("Name", text="Name")
+        self.result_table.heading("Symptom", text="Symptom")
+        self.result_table.heading("Lehrkraft", text="Lehrkraft")
+        self.result_table.heading("Status", text="Status")
+        self.result_table.pack(pady=10, fill=BOTH, expand=True)
+
+        self.result_table.column("Alert ID", width=80, minwidth=50)
+        self.result_table.column("Name", width=150, minwidth=100)
+        self.result_table.column("Symptom", width=120, minwidth=80)
+        self.result_table.column("Lehrkraft", width=150, minwidth=100)
+        self.result_table.column("Status", width=100, minwidth=80)
+        self.result_table.bind("<<TreeviewSelect>>", self.on_row_select)
+        self.load_open_alerts()
+
+        self.protokoll_data_by_item = {}
+
+        self.refresh_button = tb.Button(
+            self, text="Aktualisieren", command=self.load_open_alerts)
+        self.refresh_button.pack(pady=10)
+
+    def load_open_alerts(self):
+                self.result_table.delete(*self.result_table.get_children())
+                open_alerts = protokoll_crud.get_all_open_protokolls()
+                for protokoll in open_alerts:
+                    if isinstance(protokoll, dict):
+                        status = str(protokoll.get("status", ""))
+                        # Nur Einträge laden, deren Status mit "wf" beginnt
+                        if not status.startswith("wf"):
+                            continue
+
+                        safe_values = (
+                            str(protokoll.get("alert_id", "")),
+                            str(protokoll.get("name", "")),
+                            str(protokoll.get("symptom", "")),
+                            str(protokoll.get("teacher", "")),
+                            status,
+                        )
+                    elif isinstance(protokoll, str):
+                        safe_values = protokoll.split(",")
+                        # Status ist normalerweise das letzte Element
+                        if len(safe_values) >= 5 and not safe_values[4].startswith("wf"):
+                            continue
+                    else:
+                        safe_values = [str(v) for v in protokoll]
+                        # Status ist normalerweise das 5. Element (Index 4)
+                        if len(safe_values) >= 5 and not safe_values[4].startswith("wf"):
+                            continue
+
+                    item_id = self.result_table.insert(
+                        "",
+                        "end",
+                        values=safe_values,
+                    )
+
+    def on_row_select(self, event):
+        selected_item = self.result_table.focus()
+        if selected_item:
+            item_values = self.result_table.item(selected_item, "values")
+            alert_id = item_values[0]
+            print(f"Ausgewählter Alert ID: {alert_id}")
+            self.controller.selected_alert = alert_id
+            self.controller.show_frame("MaterialReturnPage")
+
+class MaterialReturnPage(tb.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        print(f"self.controller.selected_alert in MaterialReturnPage: {self.controller.selected_alert}")
+        tb.Label(self, text="Material Rückgabe", font=("Exo 2 ExtraBold", 16)).pack(
+            pady=20
+        )
+        self.result_table = tb.Treeview(self, columns=("Material", "Menge"), show="headings")
+        self.result_table.pack(fill=BOTH, expand=True, padx=20, pady=20)
+        self.result_table.heading("Material", text="Material")
+        self.result_table.heading("Menge", text="Menge")
+        tb.Button(
+            self,
+            text="einsatz abschließen",
+            bootstyle="danger",
+            width=20,
+            command=self.complete_return,
+        ).pack(pady=10)
+
+    def load_materials(self):
+        # Bestehende Einträge löschen
+        for item in self.result_table.get_children():
+            self.result_table.delete(item)
+
+        # Materialien laden wenn selected_alert gesetzt ist
+        if hasattr(self.controller, 'selected_alert') and self.controller.selected_alert:
+            materials = get_materials_by_protokoll_id(convert_alert_to_protokoll_id(self.controller.selected_alert))
+            for material in materials:
+                self.result_table.insert("", "end", values=(material['name'], material['quantity']))
+    def complete_return(self):
+        protokoll_crud.update_status(self.controller.selected_alert, "geschlossen")
+        self.controller.show_frame("WaitingForMaterialPage")
 
 class AlarmWidget(tb.Frame):
     def __init__(self, parent, controller, alert_id, symptom, alert_type):

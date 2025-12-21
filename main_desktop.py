@@ -63,12 +63,21 @@ class App(tb.Window):
             font=("Exo 2 Black", 16),
             style="Custom.TLabel",
         ).pack(side=LEFT, padx=5, pady=5)
+
         tb.Button(
             navbar,
             text="Alarmierung",
             style="dark",
             command=lambda: self.show_frame("AlertPage"),
         ).pack(side=LEFT, padx=(100, 10), pady=5)
+
+        tb.Button(
+            navbar,
+            text="Offene Einsätze",
+            style="dark",
+            command=lambda: self.show_frame("OpenAlertsPage"),
+        ).pack(side=LEFT, padx=5, pady=5)
+
         tb.Button(
             navbar,
             text="Alarmsuche",
@@ -118,7 +127,8 @@ class App(tb.Window):
             ElDataPage,
             UserManagementPage,
             MaterialManagementPage,
-            SettingsPage
+            SettingsPage,
+            OpenAlertsPage
         ):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
@@ -738,6 +748,7 @@ class MaterialManagementPage(tb.Frame):
         super().__init__(parent)
         self.controller = controller
         self.selected_material = None
+        self.is_reuseable = tb.BooleanVar()
         tb.Label(self, text="Materialverwaltung", font=("Exo 2 ExtraBold", 16)).pack(
             pady=20
         )
@@ -800,6 +811,9 @@ class MaterialManagementPage(tb.Frame):
 
         self.expiration_entry = DateEntry(left_frame)
         self.expiration_entry.pack(pady=10)
+
+        self.reusable_button = tb.Checkbutton(left_frame, bootstyle="round-toggle" , text="Wiederverwendbar", variable=self.is_reuseable, command=self.on_is_reuseable_change)
+        self.reusable_button.pack(pady=10)
 
         # Button-Frame für die Aktionen
         button_frame = tb.Frame(left_frame)
@@ -865,18 +879,21 @@ class MaterialManagementPage(tb.Frame):
             else:
                 safe_values = [str(v) for v in material]
 
-
             tags = []
 
-
             if int(safe_values[2]) <= int(safe_values[3]):  # Menge <= Mindestvorrat
-               tags.append("low_stock")
+                tags.append("low_stock")
 
-
-            expiration_date = datetime.datetime.strptime(safe_values[4], "%Y-%m-%d %H:%M:%S").date()
-            if expiration_date < current_date:
-               tags.append("expired")
-
+            # Ablaufdatum prüfen und parsen
+            if safe_values[4] and safe_values[4] != "None":
+                try:
+                    expiration_date = datetime.datetime.strptime(safe_values[4], "%Y-%m-%d %H:%M:%S").date()
+                    if expiration_date < current_date:
+                        tags.append("expired")
+                except ValueError:
+                    print(f"Ungültiges Datumsformat: {safe_values[4]}")
+            else:
+                expiration_date = None
 
             treeview.insert("", "end", values=safe_values, tags=tuple(tags))
 
@@ -928,55 +945,66 @@ class MaterialManagementPage(tb.Frame):
     def clear_fields(self):
         """Leert alle Eingabefelder"""
         self.name_entry.delete(0, "end")
+        self.name_entry._add_placeholder(None)
+
         self.quantity_entry.delete(0, "end")
+        self.quantity_entry._add_placeholder(None)
+
         self.min_quantity_entry.delete(0, "end")
+        self.min_quantity_entry._add_placeholder(None)
+
         self.expiration_entry.entry.delete(0, "end")
         self.selected_material = None
 
     def add_material(self):
-        """Fügt ein neues Material hinzu"""
-        try:
-            name = self.name_entry.get().strip()
-            if not name or name == "Materialname":
-                messagebox.showerror("Fehler", "Bitte geben Sie einen Materialnamen ein.")
-                return
+            """Fügt ein neues Material hinzu"""
+            try:
+                name = self.name_entry.get().strip()
+                is_reuseable = self.is_reuseable.get()
+                if not name or name == "Materialname":
+                    messagebox.showerror("Fehler", "Bitte geben Sie einen Materialnamen ein.")
+                    return
 
-            quantity_str = self.quantity_entry.get().strip()
-            if not quantity_str or quantity_str == "Menge":
-                messagebox.showerror("Fehler", "Bitte geben Sie eine Menge ein.")
-                return
-            quantity = int(quantity_str)
+                quantity_str = self.quantity_entry.get().strip()
+                if not quantity_str or quantity_str == "Menge":
+                    messagebox.showerror("Fehler", "Bitte geben Sie eine Menge ein.")
+                    return
+                quantity = int(quantity_str)
 
-            min_quantity_str = self.min_quantity_entry.get().strip()
-            if not min_quantity_str or min_quantity_str == "Mindestvorrat":
-                messagebox.showerror("Fehler", "Bitte geben Sie einen Mindestvorrat ein.")
-                return
-            min_quantity = int(min_quantity_str)
+                min_quantity_str = self.min_quantity_entry.get().strip()
+                if not min_quantity_str or min_quantity_str == "Mindestvorrat":
+                    messagebox.showerror("Fehler", "Bitte geben Sie einen Mindestvorrat ein.")
+                    return
+                min_quantity = int(min_quantity_str)
 
-            expiration = self.expiration_entry.entry.get().strip()
-            if not expiration:
-                messagebox.showerror("Fehler", "Bitte geben Sie ein Ablaufdatum ein.")
-                return
+                expiration = self.expiration_entry.entry.get().strip()
+                if not expiration and not is_reuseable:
+                    messagebox.showerror("Fehler", "Bitte geben Sie ein Ablaufdatum ein.")
+                    return
 
-            # Datum in das richtige Format konvertieren
-            expiration_date = datetime.datetime.strptime(expiration, "%d.%m.%y").strftime("%Y-%m-%d")
+                if expiration and not is_reuseable:
+                    expiration_date = datetime.datetime.strptime(expiration, "%d.%m.%y").date()
+                else:
+                    expiration_date = None
 
-            # Material hinzufügen
-            materials_crud.add_material(name, quantity, min_quantity, expiration_date)
-            messagebox.showinfo("Erfolg", "Material erfolgreich hinzugefügt.")
-            self.load_materials(self.material_treeview)
-            self.clear_fields()
 
-        except ValueError as e:
-            error_msg = str(e)
-            if "invalid literal for int()" in error_msg:
-                messagebox.showerror("Fehler", "Menge und Mindestvorrat müssen Zahlen sein.")
-            elif "time data" in error_msg or "does not match format" in error_msg:
-                messagebox.showerror("Fehler", "Ungültiges Datumsformat. Verwenden Sie TT.MM.JJ (z.B. 25.12.24)")
-            else:
-                messagebox.showerror("Fehler", f"Ungültige Eingabe: {error_msg}")
-        except Exception as e:
-            messagebox.showerror("Fehler", f"Ein Fehler ist aufgetreten: {str(e)}")
+
+                # Material hinzufügen
+                materials_crud.add_material(name, quantity, min_quantity, expiration_date, is_reuseable)
+                messagebox.showinfo("Erfolg", "Material erfolgreich hinzugefügt.")
+                self.load_materials(self.material_treeview)
+                self.clear_fields()
+
+            except ValueError as e:
+                error_msg = str(e)
+                if "invalid literal for int()" in error_msg:
+                    messagebox.showerror("Fehler", "Menge und Mindestvorrat müssen Zahlen sein.")
+                elif "time data" in error_msg or "does not match format" in error_msg:
+                    messagebox.showerror("Fehler", "Ungültiges Datumsformat. Verwenden Sie TT.MM.JJ (z.B. 25.12.24)")
+                else:
+                    messagebox.showerror("Fehler", f"Ungültige Eingabe: {error_msg}")
+            except Exception as e:
+                messagebox.showerror("Fehler", f"Ein Fehler ist aufgetreten: {str(e)}")
 
     def update_material(self):
         """Aktualisiert ein ausgewähltes Material"""
@@ -1058,6 +1086,62 @@ class MaterialManagementPage(tb.Frame):
                     self.clear_fields()
                 except Exception as e:
                     messagebox.showerror("Fehler", f"Fehler beim Löschen: {str(e)}")
+
+    def on_is_reuseable_change(self):
+        if self.is_reuseable.get():
+            self.expiration_entry.entry.delete(0, "end")
+            self.expiration_entry.state(["disabled"])  # Zustand auf "disabled" setzen
+        else:
+            self.expiration_entry.state(["!disabled"])  # Zustand auf "normal" setzen
+
+class OpenAlertsPage(tb.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        tb.Label(self, text="Offene Alarme", font=("Exo 2 ExtraBold", 16)).pack(
+            pady=20
+        )
+        self.result_table = tb.Treeview(
+            self,
+            columns=("Alert ID", "Name", "Symptom", "Lehrkraft", "Status"),
+            show="headings",
+        )
+
+        self.result_table.heading("Alert ID", text="Alert ID")
+        self.result_table.heading("Name", text="Name")
+        self.result_table.heading("Symptom", text="Symptom")
+        self.result_table.heading("Lehrkraft", text="Lehrkraft")
+        self.result_table.heading("Status", text="Status")
+        self.result_table.pack(pady=10, fill=BOTH, expand=True)
+        self.load_open_alerts()
+
+        self.protokoll_data_by_item = {}
+
+        self.refresh_button = tb.Button(
+            self, text="Aktualisieren", command=self.load_open_alerts)
+        self.refresh_button.pack(pady=10)
+    def load_open_alerts(self):
+        self.result_table.delete(*self.result_table.get_children())
+        open_alerts = protokoll_crud.get_all_open_protokolls()
+        for protokoll in open_alerts:
+            if isinstance(protokoll, dict):
+                safe_values = (
+                    str(protokoll.get("alert_id", "")),
+                    str(protokoll.get("name", "")),
+                    str(protokoll.get("symptom", "")),
+                    str(protokoll.get("teacher", "")),
+                    str(protokoll.get("status", "")),
+                )
+            elif isinstance(protokoll, str):
+                safe_values = protokoll.split(",")
+            else:
+                safe_values = [str(v) for v in protokoll]
+
+            item_id = self.result_table.insert(
+                "",
+                "end",
+                values=safe_values,
+            )
 
 if __name__ == "__main__":
     dotenv.load_dotenv(dotenv_path=r"C:\Users\cleme\Desktop\JugendForscht\Jugendforscht_ASW_2025\sanilink.env")

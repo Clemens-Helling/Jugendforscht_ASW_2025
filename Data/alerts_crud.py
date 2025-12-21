@@ -4,7 +4,7 @@ import pytz
 from contextlib import contextmanager
 from Data.models import Alarmierung, Protokoll
 from Data.setup_database import session
-
+from sqlalchemy import or_
 utc_time = datetime.now(UTC)
 local_time = utc_time.astimezone(pytz.timezone("Europe/Berlin"))
 print(local_time)
@@ -30,7 +30,7 @@ def add_alert(symptom, alert_type):
 
     session.flush()
     alert_id = alert.alert_id
-    protokoll = Protokoll(alert_id=alert.alert_id)
+    protokoll = Protokoll(alert_id=alert.alert_id, status= "open")
     print(alert.alert_id)
 
     session.add(protokoll)
@@ -61,7 +61,7 @@ def get_alerts():
 
 def get_all_active_alerts():
     with session_scope() as s:
-        protokolls = s.query(Protokoll).filter(Protokoll.operation_end == None).all()
+        protokolls = s.query(Protokoll).filter(or_(Protokoll.status == "open", Protokoll.status == "ohne Name")).all()
         active_alerts = []
         for protokoll in protokolls:
             alert = (
@@ -79,3 +79,14 @@ def get_all_active_alerts():
                     }
                 )
         return active_alerts
+
+def get_alert_by_id(alert_id):
+    """Gibt eine Alarmierung anhand ihrer ID zurück."""
+    alert = session.query(Alarmierung).filter_by(alert_id=alert_id).first()
+    if alert:
+        return {
+            "alert_id": alert.alert_id,
+            "alert_received": alert.alert_received,
+            "alert_type": alert.alert_type,
+            "symptom": alert.symptom,
+        }

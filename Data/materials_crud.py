@@ -16,10 +16,10 @@ def session_scope():
     finally:
         session.close()
 
-def add_material(material_name, quantity, min_qunataty, expires_at):
+def add_material(material_name, quantity, min_qunataty, expires_at, reuseable=False):
     """Fügt ein Material hinzu."""
     material = Material(
-        material_name=material_name, quantity=quantity, expires_at=expires_at, minimum_stock=min_qunataty
+        material_name=material_name, quantity=quantity, expires_at=expires_at, minimum_stock=min_qunataty, reuseable=reuseable
     )
     session.add(material)
     session.commit()
@@ -35,6 +35,7 @@ def get_material(material_name):
             "material_name": material.material_name,
             "quantity": material.quantity,
             "expires_at": material.expires_at,
+            "is_reuseable": material.reuseable,
         }
     else:
         print(f"Material {material_name} nicht gefunden.")
@@ -207,3 +208,28 @@ def get_material_id_by_name(material_name):
     else:
         print(f"Material {material_name} nicht gefunden.")
         return None
+
+def get_material_name_by_id(material_id):
+    """Gibt den Materialnamen anhand der Material-ID zurück."""
+    material = session.query(Material).filter_by(material_id=material_id).first()
+    if material:
+        return material.material_name
+    else:
+        print(f"Material mit ID {material_id} nicht gefunden.")
+        return None
+
+def get_materials_by_protokoll_id(protokoll_id):
+    """Gibt alle Materialien eines Protokolls anhand der Protokoll-ID zurück."""
+    materials = (
+        session.query(ProtokollMaterials).filter_by(protokoll_id=protokoll_id).all()
+    )
+    result = []
+    for material in materials:
+        mat = (
+            session.query(Material).filter_by(material_id=material.material_id).first()
+        )
+        if mat:
+            result.append({"name": mat.material_name, "quantity": material.quantity})
+    return result
+
+
