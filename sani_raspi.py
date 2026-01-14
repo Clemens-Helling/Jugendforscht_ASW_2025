@@ -63,7 +63,7 @@ class PlaceholderEntry(tb.Entry):
 
 class App(tb.Window):
     def __init__(self):
-        super().__init__(themename="sanilink-light")
+        super().__init__(themename="litera")
         self.title("SaniLink")
         self.geometry("800x480")
 

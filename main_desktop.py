@@ -42,7 +42,7 @@ class PlaceholderEntry(tb.Entry):
 
 class App(tb.Window):
     def __init__(self):
-        super().__init__(themename="sanilink-light")
+        super().__init__(themename="litera")
         self.title("SaniLink")
         self.geometry("1200x800")
         selected_alert = None
@@ -51,7 +51,7 @@ class App(tb.Window):
         navbar = tb.Frame(self, style="dark")
         navbar.pack(side=TOP, fill=X)
 
-        style = tb.Style()
+        style = tb.Style("litera")
         style.configure(
             "Custom.TLabel",
             background="#263238",
@@ -667,7 +667,7 @@ class SettingsPage(tb.Frame):
             pady=20
         )
 
-        api_frame = tb.LabelFrame(self, text="API", bootstyle="info")
+        api_frame = tb.LabelFrame(self, text="API")
         api_frame.pack(pady=10, padx=10, fill="x")
         radio_frame = tb.Frame(api_frame)
         radio_frame.pack(pady=10, padx=10, fill="x")

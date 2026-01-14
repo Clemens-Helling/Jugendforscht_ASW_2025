@@ -18,7 +18,7 @@ logger = EasyLogger(
     log_file="database.log"
 )
 
-engine = create_engine("mysql+pymysql://root:Flecki2022#@localhost:3306/sani_link")
+engine = create_engine("mysql+pymysql://root:clemens1712@localhost:3306/sani_link")
 try:
     Session = sessionmaker(bind=engine)
     session = Session()
