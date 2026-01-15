@@ -13,6 +13,8 @@ from ttkbootstrap.constants import *
 from Alert import alarm
 from Data import (alerts_crud, materials_crud, patient_crud, protokoll_crud,
                   users_crud, settings_crud)
+from Data.materials_crud import get_material_id_by_name, get_materials_by_protokoll_id, add_material_quantity
+from Data.protokoll_crud import convert_alert_to_protokoll_id
 from PDF.pdf import main
 from rfid.rfid import read_rfid_uid
 
@@ -44,7 +46,7 @@ class App(tb.Window):
         self.title("SaniLink")
         self.geometry("1200x800")
         selected_alert = None
-        # Navbar
+        self.selected_open_alert = None
 
         navbar = tb.Frame(self, style="dark")
         navbar.pack(side=TOP, fill=X)
@@ -128,7 +130,8 @@ class App(tb.Window):
             UserManagementPage,
             MaterialManagementPage,
             SettingsPage,
-            OpenAlertsPage
+            OpenAlertsPage,
+            MaterialReturnPage
         ):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
@@ -165,7 +168,7 @@ class AlertPage(tb.Frame):
         self.birth_entry.pack(pady=10)
 
         symptom_combobox = tb.Combobox(
-            self, values=["Bauchweh", "Schürfwunde", "Schnittwunde", "Übelkeit", "Kopfschmerzen"]
+            self, values=["Bauchweh", "Schwindel", "Erbrechen", "Übelkeit", "Kopfschmerzen", "Nasenbluten", "Verletzung Extimitäten"]
         )
         symptom_combobox.set("Symptome")
         symptom_combobox.pack(pady=10)
@@ -1101,6 +1104,17 @@ class OpenAlertsPage(tb.Frame):
         tb.Label(self, text="Offene Alarme", font=("Exo 2 ExtraBold", 16)).pack(
             pady=20
         )
+        self.meter_frame = tb.Frame(self)
+        self.meter_frame.pack(pady=10)
+
+        self.open_alerts_meter = tb.Meter(self.meter_frame, bootstyle="success", subtext="Offene Alarme", amountused=5, amounttotal=10)
+        self.open_alerts_meter.pack(pady=10, side="left", padx=20)
+
+        self.waiting_alerts_meter = tb.Meter(self.meter_frame, bootstyle="warning", subtext="Wartende Alarme", amountused=2, amounttotal=10)
+        self.waiting_alerts_meter.pack(pady=10, )
+
+
+
         self.result_table = tb.Treeview(
             self,
             columns=("Alert ID", "Name", "Symptom", "Lehrkraft", "Status"),
@@ -1113,6 +1127,7 @@ class OpenAlertsPage(tb.Frame):
         self.result_table.heading("Lehrkraft", text="Lehrkraft")
         self.result_table.heading("Status", text="Status")
         self.result_table.pack(pady=10, fill=BOTH, expand=True)
+        self.result_table.bind("<<TreeviewSelect>>", self.on_row_click)
         self.load_open_alerts()
 
         self.protokoll_data_by_item = {}
@@ -1123,6 +1138,7 @@ class OpenAlertsPage(tb.Frame):
     def load_open_alerts(self):
         self.result_table.delete(*self.result_table.get_children())
         open_alerts = protokoll_crud.get_all_open_protokolls()
+        waiting_alerts = []
         for protokoll in open_alerts:
             if isinstance(protokoll, dict):
                 safe_values = (
@@ -1135,13 +1151,79 @@ class OpenAlertsPage(tb.Frame):
             elif isinstance(protokoll, str):
                 safe_values = protokoll.split(",")
             else:
-                safe_values = [str(v) for v in protokoll]
+                safe_values = [str(v) for v in protokoll]#
+            if safe_values[4].startswith("wf"):
+                waiting_alerts.append(protokoll)
 
             item_id = self.result_table.insert(
                 "",
                 "end",
                 values=safe_values,
             )
+        self.open_alerts_meter.configure(amountused=len(open_alerts))
+        self.waiting_alerts_meter.configure(amountused=len(waiting_alerts))
+
+    def on_row_click(self, event):
+        print("on_row_click")
+        # Verwende selection() anstatt identify_row() für TreeviewSelect-Events
+        selected_items = self.result_table.selection()
+        print(f"Selected items: {selected_items}")
+
+        if selected_items:
+            item_id = selected_items[0]  # Erstes ausgewähltes Element
+            selected_alert_data = self.result_table.item(item_id, "values")
+            print(selected_alert_data[4])
+            if selected_alert_data[4].startswith("wf"):
+                self.controller.selected_open_alert = selected_alert_data[0]
+                print(f"Ausgewählter Alert: {self.controller.selected_open_alert}")
+                self.controller.show_frame("MaterialReturnPage")
+
+class MaterialReturnPage(tb.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        tb.Label(self, text="Material Rückgabe", font=("Exo 2 ExtraBold", 16)).pack(
+            pady=20
+        )
+        self.result_table = tb.Treeview(self, columns=("Material", "Menge"), show="headings")
+        self.result_table.pack(fill=BOTH, expand=True, padx=20, pady=20)
+        self.result_table.heading("Material", text="Material")
+        self.result_table.heading("Menge", text="Menge")
+        tb.Button(
+            self,
+            text="einsatz abschließen",
+            bootstyle="danger",
+            width=20,
+            command=self.complete_return,
+        ).pack(pady=10)
+
+    def tkraise(self, aboveThis=None):
+        """Überschreibt tkraise um Materialien zu laden wenn die Seite angezeigt wird"""
+        super().tkraise(aboveThis)
+        self.load_materials()
+
+    def load_materials(self):
+        # Bestehende Einträge löschen
+        for item in self.result_table.get_children():
+            self.result_table.delete(item)
+
+        # Materialien laden wenn selected_open_alert gesetzt ist
+        if hasattr(self.controller, 'selected_open_alert') and self.controller.selected_open_alert:
+            materials = get_materials_by_protokoll_id(convert_alert_to_protokoll_id(self.controller.selected_open_alert), True)
+            for material in materials:
+                self.result_table.insert("", "end", values=(material['name'], material['quantity']))
+
+    def complete_return(self):
+        rerturned_mats = []
+        for item in self.result_table.get_children():
+            material_name, menge = self.result_table.item(item, "values")
+            rerturned_mats.append((material_name, int(menge)))
+            matrial_id = get_material_id_by_name(material_name)
+            if matrial_id:
+                add_material_quantity(matrial_id, int(menge))
+        protokoll_crud.update_status(self.controller.selected_open_alert, "geschlossen")
+        OpenAlertsPage.load_open_alerts()
+        self.controller.show_frame("OpenAlertsPage")
 
 if __name__ == "__main__":
     dotenv.load_dotenv(dotenv_path=r"C:\Users\cleme\Desktop\JugendForscht\Jugendforscht_ASW_2025\sanilink.env")

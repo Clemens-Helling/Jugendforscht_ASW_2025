@@ -218,11 +218,22 @@ def get_material_name_by_id(material_id):
         print(f"Material mit ID {material_id} nicht gefunden.")
         return None
 
-def get_materials_by_protokoll_id(protokoll_id):
+def get_materials_by_protokoll_id(protokoll_id, only_reuseable=False):
     """Gibt alle Materialien eines Protokolls anhand der Protokoll-ID zurück."""
-    materials = (
-        session.query(ProtokollMaterials).filter_by(protokoll_id=protokoll_id).all()
-    )
+    if only_reuseable:
+        materials = (
+            session.query(ProtokollMaterials)
+            .join(Material, ProtokollMaterials.material_id == Material.material_id)
+            .filter(
+                ProtokollMaterials.protokoll_id == protokoll_id,
+                Material.reuseable == True,
+            )
+            .all()
+        )
+    else:
+        materials = (
+            session.query(ProtokollMaterials).filter_by(protokoll_id=protokoll_id).all()
+        )
     result = []
     for material in materials:
         mat = (
@@ -232,4 +243,5 @@ def get_materials_by_protokoll_id(protokoll_id):
             result.append({"name": mat.material_name, "quantity": material.quantity})
     return result
 
-
+if __name__ == "__main__":
+    print(get_materials_by_protokoll_id(protokoll_id=147, only_reuseable=False))

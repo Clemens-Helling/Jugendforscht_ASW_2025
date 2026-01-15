@@ -173,3 +173,4 @@ key.key
 .idea/dataSources/
 .idea/dataSources.local.xml
 .idea/deployment.xml
+/easy_logger/keys/

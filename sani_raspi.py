@@ -1,15 +1,19 @@
 import datetime
+import threading
+import time
 import tkinter.font as tkFont
 import tkinter.messagebox as mbox
 
 import ttkbootstrap as tb
+import winsound
 from ttkbootstrap import DateEntry
 from ttkbootstrap.constants import *
 
 from Alert import alarm
 from Data import alerts_crud, patient_crud, protokoll_crud, users_crud
 from Data.materials_crud import add_material_to_protokoll, get_all_material_names, subtract_material_quantity, \
-    get_material_id_by_name, check_low_stock, get_material, get_material_name_by_id, get_materials_by_protokoll_id
+    get_material_id_by_name, check_low_stock, get_material, get_material_name_by_id, get_materials_by_protokoll_id, \
+    add_material_quantity
 from Data.protokoll_crud import update_status, convert_alert_to_protokoll_id
 from Data.users_crud import check_user_permisson
 from rfid.rfid import read_rfid_uid
@@ -117,6 +121,9 @@ class App(tb.Window):
         tb.Button(
             self.navbar, text="SOS", style="danger", command=self.trigger_sos_alarm
         ).pack(side=RIGHT, padx=5, pady=5)
+        tb.Button(
+            self.navbar, text="Reanimation", style="danger", command=lambda: self.show_frame("HLWPage")
+        ).pack(side=RIGHT, padx=5, pady=5)
 
         # Container für alle Seiten
         container = tb.Frame(self)
@@ -139,7 +146,8 @@ class App(tb.Window):
             HealthDataPage,
             MaterialPage,
             WaitingForMaterialPage,
-            MaterialReturnPage
+            MaterialReturnPage,
+            HLWPage
         ):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
@@ -376,7 +384,7 @@ class ProtokollPage(tb.Frame):
         self.setup_searchable_combobox(self.teacher_combobox, lehrer_liste)
 
         self.measure_combobox = tb.Combobox(
-            self, values=["Tee", "Wundversorgung", "Rettungsdienst", "Traubenzucker"]
+            self, values=["Tee", "Traubenzucker", "Wärmfalsche", "Kälteanwendung", "Wundversorgung", "Ruhepause"]
         )
         self.measure_combobox.set("Maßnahme")
         self.measure_combobox.pack(pady=10)
@@ -759,10 +767,18 @@ class MaterialReturnPage(tb.Frame):
 
         # Materialien laden wenn selected_alert gesetzt ist
         if hasattr(self.controller, 'selected_alert') and self.controller.selected_alert:
-            materials = get_materials_by_protokoll_id(convert_alert_to_protokoll_id(self.controller.selected_alert))
+            materials = get_materials_by_protokoll_id(convert_alert_to_protokoll_id(self.controller.selected_alert), True)
             for material in materials:
                 self.result_table.insert("", "end", values=(material['name'], material['quantity']))
-    def complete_return(self):
+
+    def complete_return(self):#
+        rerturned_mats = []
+        for item in self.result_table.get_children():
+            material_name, menge = self.result_table.item(item, "values")
+            rerturned_mats.append((material_name, int(menge)))
+            matrial_id = get_material_id_by_name(material_name)
+            if matrial_id:
+                add_material_quantity(matrial_id, int(menge))
         protokoll_crud.update_status(self.controller.selected_alert, "geschlossen")
         self.controller.show_frame("WaitingForMaterialPage")
 
@@ -847,6 +863,106 @@ class AlarmWidget(tb.Frame):
         return colors.get(style_name, "#ffffff")
 
 
+class HLWPage(tb.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        tb.Label(self, text="HLW Anleitung", font=("Exo 2 ExtraBold", 16)).pack(pady=20)
+        instructions = (
+            "1. Prüfen Sie die Umgebung auf Sicherheit.\n"
+            "2. Überprüfen Sie die Atmung der Person.\n"
+            "3. Rufen Sie den Notruf 112 an.\n"
+            "4. Beginnen Sie mit der Herzdruckmassage:\n"
+            "   - Platzieren Sie Ihre Hände in der Mitte der Brust.\n"
+            "   - Drücken Sie kräftig und schnell (ca. 100-120 Mal pro Minute).\n"
+            "5. Verwenden Sie einen Defibrillator, wenn verfügbar.\n"
+            "6. Fahren Sie fort, bis professionelle Hilfe eintrifft."
+        )
+        tb.Label(self, text=instructions, font=("Exo 2", 12), justify=LEFT).pack(pady=10, padx=20)
+
+        tb.Button(
+            self,
+            text="Start",
+            bootstyle="primary",
+            command=self.start_hlw,
+        ).pack(pady=10)
+
+    import time
+    import threading
+    import winsound
+
+    import time
+    import threading
+    import winsound
+
+    def start_hlw(self):
+        print("HLW gestartet")
+
+        # Hilfsfunktion: Spielt den Ton in einem eigenen Thread,
+        # damit der Haupt-Rhythmus NICHT angehalten wird.
+        def play_async_beep():
+            try:
+                # Daemon=True sorgt dafür, dass der Thread stirbt, wenn das Hauptprogramm endet
+                threading.Thread(target=winsound.Beep, args=(800, 80), daemon=True).start()
+            except:
+                pass
+
+        def hlw_loop():
+            try:
+                bpm = 100
+                interval = 60.0 / bpm
+
+                self.hlw_running = True
+
+                # Startzeitpunkt
+                next_beat_time = time.perf_counter()
+                beat_count = 0
+
+                # Wir berechnen die Zeiten VOR der Schleife vor, um Rechenzeit zu sparen
+                while beat_count < 600 and self.hlw_running:
+
+                    # --- 1. Warteschleife (Hybrid Sleep) ---
+                    while True:
+                        current_time = time.perf_counter()
+                        remaining = next_beat_time - current_time
+
+                        if remaining <= 0:
+                            break
+
+                        # Schlafen um CPU zu schonen, aber wach bleiben kurz vor Ziel
+                        if remaining > 0.02:
+                            time.sleep(remaining - 0.015)
+                        else:
+                            # Busy Wait für die letzten Millisekunden
+                            pass
+
+                    if not self.hlw_running:
+                        break
+
+                    # --- 2. Ton abfeuern (BLOCKIERT NICHT MEHR!) ---
+                    # Wir rufen jetzt die asynchrone Funktion auf.
+                    # Der Code läuft SOFORT weiter, ohne auf das Ende des Tons zu warten.
+                    play_async_beep()
+
+                    # Nächsten Zeitpunkt berechnen
+                    beat_count += 1
+                    next_beat_time += interval
+
+            except Exception as e:
+                print(f"HLW Fehler: {e}")
+            finally:
+                self.hlw_running = False
+                print("HLW gestoppt")
+
+        self.hlw_running = True
+        # Der Haupt-Loop läuft in einem Thread, damit die GUI nicht einfriert
+        hlw_thread = threading.Thread(target=hlw_loop, daemon=True)
+        hlw_thread.start()
+
+        def stop_hlw(self):
+            if hasattr(self, 'hlw_running'):
+                self.hlw_running = False
+                print("HLW wird gestoppt...")
 if __name__ == "__main__":
     app = App()
     app.mainloop()
