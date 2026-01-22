@@ -11,7 +11,7 @@ from easy_logger.secure_log_client import SecureLogClient
 
 logger = SecureLogClient(
     server_url = "http://192.168.178.112:5000",
-    private_key_path = "client_private_key.pem"
+    private_key_path = "keys/client_private_key.pem"
 )
 
 engine = create_engine("mysql+pymysql://root:clemens1712@localhost:3306/sani_link")
@@ -22,7 +22,6 @@ try:
     logger.send_log("INFO","Datenbank verbindung hergestellt")
 except Exception as e:
     logger.send_log("INFO","Datenbank verbindung hergestellt")
-
 
 
 

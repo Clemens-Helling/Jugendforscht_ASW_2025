@@ -1,8 +1,22 @@
 import datetime
+import os
 
 from Data.models import Material, Protokoll, ProtokollMaterials
 from Data.setup_database import session
+from easy_logger.secure_log_client import SecureLogClient
+from easy_logger.error_codes import ErrorCodes
 from contextlib import contextmanager
+
+# Initialize secure log client
+secure_logger = None
+if os.path.exists('/home/clemens/dev/Jugendforscht_ASW_2025/keys/client_private_key.pem'):
+    try:
+        secure_logger = SecureLogClient(
+            server_url='http://localhost:5000',
+            private_key_path='/home/clemens/dev/Jugendforscht_ASW_2025/keys/client_private_key.pem'
+        )
+    except Exception as e:
+        print(f"Failed to initialize secure logger: {e}")
 
 @contextmanager
 def session_scope():
@@ -24,12 +38,16 @@ def add_material(material_name, quantity, min_qunataty, expires_at, reuseable=Fa
     session.add(material)
     session.commit()
     print(f"Material {material_name} hinzugefügt.")
+    if secure_logger:
+        secure_logger.send_log('INFO', 'Material added', {'material_name': material_name, 'quantity': quantity, 'reuseable': reuseable})
 
 
 def get_material(material_name):
     """Gibt ein Material zurück."""
     material = session.query(Material).filter_by(material_name=material_name).first()
     if material:
+        if secure_logger:
+            secure_logger.send_log('INFO', 'Material retrieved', {'material_name': material_name, 'quantity': material.quantity})
         return {
             "material_id": material.material_id,
             "material_name": material.material_name,
@@ -39,6 +57,8 @@ def get_material(material_name):
         }
     else:
         print(f"Material {material_name} nicht gefunden.")
+        if secure_logger:
+            secure_logger.send_log('WARNING', 'Material not found', {'error_code': ErrorCodes.RESOURCE_NOT_FOUND, 'material_name': material_name})
         return None
 
 
@@ -49,8 +69,12 @@ def add_material_quantity(material_id, quantity):
         material.quantity = material.quantity + quantity
         session.commit()
         print(f"Material {material.material_name} aktualisiert.")
+        if secure_logger:
+            secure_logger.send_log('INFO', 'Material quantity updated', {'material_id': material_id, 'added_quantity': quantity, 'new_total': material.quantity})
     else:
         print(f"Material mit ID {material_id} nicht gefunden.")
+        if secure_logger:
+            secure_logger.send_log('ERROR', 'Material not found for quantity update', {'error_code': ErrorCodes.RESOURCE_NOT_FOUND, 'material_id': material_id})
 
 
 def subtract_material_quantity(material_id, quantity):

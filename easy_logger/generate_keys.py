@@ -3,8 +3,11 @@ from cryptography.hazmat.primitives import serialization
 import os
 
 
-def generate_keypair(client_name="client"):
+def generate_keypair(client_name="client", keys_dir="keys"):
     """Generiert RSA-Schlüsselpaar für einen Client"""
+
+    # Keys-Verzeichnis erstellen falls nicht vorhanden
+    os.makedirs(keys_dir, exist_ok=True)
 
     # RSA-Schlüsselpaar generieren
     private_key = rsa.generate_private_key(
@@ -13,7 +16,7 @@ def generate_keypair(client_name="client"):
     )
 
     # Privaten Schlüssel speichern (nur für Client)
-    private_key_path = f'{client_name}_private_key.pem'
+    private_key_path = os.path.join(keys_dir, f'{client_name}_private_key.pem')
     with open(private_key_path, 'wb') as f:
         f.write(private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
@@ -22,7 +25,7 @@ def generate_keypair(client_name="client"):
         ))
 
     # Öffentlichen Schlüssel speichern (für Server)
-    public_key_path = f'{client_name}_public_key.pem'
+    public_key_path = os.path.join(keys_dir, f'{client_name}_public_key.pem')
     with open(public_key_path, 'wb') as f:
         f.write(private_key.public_key().public_bytes(
             encoding=serialization.Encoding.PEM,

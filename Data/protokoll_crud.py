@@ -1,5 +1,6 @@
 import datetime
 import json
+import os
 
 from IPython.core.magic_arguments import real_name
 
@@ -13,7 +14,10 @@ from Data.patient_crud import get_patient_by_pseudonym, get_pseudonym_by_name
 from Data.setup_database import session
 from Data.users_crud import get_teacher_name_by_id
 from easy_logger.easy_logger import EasyLogger
+from easy_logger.secure_log_client import SecureLogClient
+from easy_logger.error_codes import ErrorCodes
 from contextlib import contextmanager
+
 logger = EasyLogger(
     name="UsersCRUD",
     level="INFO",
@@ -21,6 +25,17 @@ logger = EasyLogger(
     log_dir="logs",
     log_file="database.log"
 )
+
+# Initialize secure log client
+secure_logger = None
+if os.path.exists('/home/clemens/dev/Jugendforscht_ASW_2025/keys/client_private_key.pem'):
+    try:
+        secure_logger = SecureLogClient(
+            server_url='http://localhost:5000',
+            private_key_path='/home/clemens/dev/Jugendforscht_ASW_2025/keys/client_private_key.pem'
+        )
+    except Exception as e:
+        print(f"Failed to initialize secure logger: {e}")
 @contextmanager
 def session_scope():
     """Bietet einen Transaktions-Umfang für die Datenbank-Session."""
@@ -39,8 +54,12 @@ def update_status(alert_id, status):
         protokoll.status = status
         session.commit()
         print(f"Status des Protokolls {alert_id} aktualisiert auf {status}.")
+        if secure_logger:
+            secure_logger.send_log('INFO', 'Protokoll status updated', {'alert_id': alert_id, 'status': status})
     else:
         print(f"Protokoll mit alert_id {alert_id} nicht gefunden.")
+        if secure_logger:
+            secure_logger.send_log('WARNING', 'Protokoll not found for status update', {'error_code': ErrorCodes.RESOURCE_NOT_FOUND, 'alert_id': alert_id})
 
 
 def add_teacher_to_protokoll(alert_id, teacher_id):
@@ -48,11 +67,15 @@ def add_teacher_to_protokoll(alert_id, teacher_id):
     protokoll = session.query(Protokoll).filter_by(alert_id=alert_id).first()
     if not protokoll:
         print(f"Kein Protokoll mit alert_id {alert_id} gefunden.")
+        if secure_logger:
+            secure_logger.send_log('ERROR', 'Protokoll not found', {'error_code': ErrorCodes.RESOURCE_NOT_FOUND, 'alert_id': alert_id})
         return
 
     protokoll.teacher_id = teacher_id
     session.commit()
     print(f"Lehrer {teacher_id} zum Protokoll {alert_id} hinzugefügt.")
+    if secure_logger:
+        secure_logger.send_log('INFO', 'Teacher added to protokoll', {'alert_id': alert_id, 'teacher_id': teacher_id})
 
 
 def add_measure_to_protokoll(alert_id, measure):
@@ -75,6 +98,8 @@ def add_health_data_to_protokoll(
     protokoll = session.query(Protokoll).filter_by(alert_id=alert_id).first()
     if not protokoll:
         print(f"Kein Protokoll mit alert_id {alert_id} gefunden.")
+        if secure_logger:
+            secure_logger.send_log('ERROR', 'Protokoll not found for health data', {'error_code': ErrorCodes.RESOURCE_NOT_FOUND, 'alert_id': alert_id})
         return
 
     protokoll.pulse = pulse

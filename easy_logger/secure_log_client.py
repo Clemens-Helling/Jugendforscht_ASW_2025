@@ -79,17 +79,18 @@ if __name__ == '__main__':
     import sys
 
     # Schlüssel generieren falls nicht vorhanden
-    if not os.path.exists('client_private_key.pem'):
+    private_key_path = '../keys/client_private_key.pem'
+    if not os.path.exists(private_key_path):
         print("Generiere Schlüsselpaar...")
         from generate_keys import generate_keypair
 
-        generate_keypair("client")
-        print("\n⚠️  Kopiere 'client_public_key.pem' in das Server 'keys/' Verzeichnis!\n")
+        generate_keypair("client", keys_dir="../keys")
+        print("\n⚠️  Alle Schlüssel wurden im 'keys/' Verzeichnis erstellt!\n")
 
     # Client initialisieren
     client = SecureLogClient(
         server_url='http://192.168.178.112:5000',  # In Produktion: https://
-        private_key_path='client_private_key.pem'
+        private_key_path=private_key_path
     )
 
     print(f"\n📤 Sende Test-Logs als Client {client.client_id}...\n")

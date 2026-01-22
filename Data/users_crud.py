@@ -1,9 +1,12 @@
 import datetime
 import json
+import os
 
 from Data.models import Protokoll, SaniProtokoll, Teacher, User
 from Data.setup_database import session
 from easy_logger.easy_logger import EasyLogger
+from easy_logger.secure_log_client import SecureLogClient
+from easy_logger.error_codes import ErrorCodes
 
 logger = EasyLogger(
     name="UsersCRUD",
@@ -12,6 +15,17 @@ logger = EasyLogger(
     log_dir="logs",
     log_file="database.log"
 )
+
+# Initialize secure log client
+secure_logger = None
+if os.path.exists('/home/clemens/dev/Jugendforscht_ASW_2025/keys/client_private_key.pem'):
+    try:
+        secure_logger = SecureLogClient(
+            server_url='http://localhost:5000',
+            private_key_path='/home/clemens/dev/Jugendforscht_ASW_2025/keys/client_private_key.pem'
+        )
+    except Exception as e:
+        print(f"Failed to initialize secure logger: {e}")
 
 def add_user(name, last_name, lernbegleiter, kartennummer, permission):
     """Fügt einen Benutzer hinzu."""
@@ -27,6 +41,8 @@ def add_user(name, last_name, lernbegleiter, kartennummer, permission):
     session.add(user)
     session.commit()
     logger.info(f"User {name} {last_name} added with card {kartennummer}.")
+    if secure_logger:
+        secure_logger.send_log('INFO', 'User added', {'name': f"{name} {last_name}", 'card_number': kartennummer, 'permission': permission})
 
 
 def add_sani1(card_number, alert_id):
@@ -203,6 +219,8 @@ def get_user_by_card_number(card_number):
         User.karten_nummer == card_number, User.permission != "deactivated"
     ).first()
     if user:
+        if secure_logger:
+            secure_logger.send_log('INFO', 'User retrieved by card', {'card_number': card_number, 'user': f"{user.name} {user.last_name}"})
         return {
             "User_ID": user.User_ID,
             "name": user.name,
@@ -213,6 +231,8 @@ def get_user_by_card_number(card_number):
         }
     else:
         logger.warning(f"Karte {card_number} nicht gefunden.")
+        if secure_logger:
+            secure_logger.send_log('WARNING', 'Card not found', {'error_code': ErrorCodes.RESOURCE_NOT_FOUND, 'card_number': card_number})
         print(f"Kein Benutzer mit Karten­nummer {card_number} gefunden.")
         return None
 
@@ -248,6 +268,8 @@ def update_user(
     user = session.query(User).filter_by(User_ID=user_id).first()
     if not user:
         print(f"Kein Benutzer mit ID {user_id} gefunden.")
+        if secure_logger:
+            secure_logger.send_log('ERROR', 'User not found for update', {'error_code': ErrorCodes.RESOURCE_NOT_FOUND, 'user_id': user_id})
         return
 
     if name is not None:
@@ -263,6 +285,8 @@ def update_user(
 
     session.commit()
     logger.info(f"User {user.name} updated.")
+    if secure_logger:
+        secure_logger.send_log('INFO', 'User updated', {'user_id': user_id, 'name': f"{user.name} {user.last_name}"})
     print(f"Benutzer mit ID {user_id} aktualisiert.")
 
 
@@ -271,10 +295,14 @@ def delete_user(user_id):
     user = session.query(User).filter_by(User_ID=user_id).first()
     if not user:
         print(f"Kein Benutzer mit ID {user_id} gefunden.")
+        if secure_logger:
+            secure_logger.send_log('ERROR', 'User not found for deletion', {'error_code': ErrorCodes.RESOURCE_NOT_FOUND, 'user_id': user_id})
         return
     user.permission = "deactivated"
     session.commit()
     logger.info(f"User {user.name} deleted.")
+    if secure_logger:
+        secure_logger.send_log('INFO', 'User deactivated', {'user_id': user_id, 'name': f"{user.name} {user.last_name}"})
 
 
 def check_user_permisson(card_number, required_permission):
@@ -284,12 +312,18 @@ def check_user_permisson(card_number, required_permission):
     if not user:
         print(f"Kein Benutzer mit Karten­nummer {card_number} gefunden.")
         logger.info(f"Faild login attempt with card number {card_number} for permission {required_permission}")
+        if secure_logger:
+            secure_logger.send_log('WARNING', 'Failed login attempt', {'error_code': ErrorCodes.AUTH_FAILED, 'card_number': card_number, 'required_permission': required_permission})
         return False
 
     if user.permission == required_permission or user.permission == "admin":
+        if secure_logger:
+            secure_logger.send_log('INFO', 'Successful authentication', {'card_number': card_number, 'user': f"{user.name} {user.last_name}", 'permission': required_permission})
         return True
     else:
         logger.info(f"Faild login from {user.name} {user.last_name} for permission {required_permission}")
+        if secure_logger:
+            secure_logger.send_log('WARNING', 'Insufficient permissions', {'error_code': ErrorCodes.AUTH_FAILED, 'user': f"{user.name} {user.last_name}", 'required_permission': required_permission, 'user_permission': user.permission})
         return False
 
 

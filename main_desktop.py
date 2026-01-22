@@ -56,7 +56,7 @@ class App(tb.Window):
             "Custom.TLabel",
             background="#263238",
             foreground="#ffffff",
-            font=("Exo 2 ExtraBold", 16),
+            font=("Exo 2", 16, "bold")
         )
 
         tb.Label(

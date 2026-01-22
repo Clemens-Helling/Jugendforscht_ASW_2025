@@ -15,11 +15,11 @@ LOG_FILE = 'server_logs.jsonl'
 client_public_keys = {}
 
 
-def load_client_keys(keys_directory='./keys'):
+def load_client_keys(keys_directory='../keys'):
     """Lädt alle öffentlichen Schlüssel aus dem Verzeichnis"""
     keys_path = Path(keys_directory)
     if not keys_path.exists():
-        keys_path.mkdir()
+        keys_path.mkdir(parents=True)
         print(f"⚠️  Verzeichnis {keys_directory} erstellt. Kopiere Client Public Keys hierhin.")
         return
 
@@ -146,7 +146,7 @@ def health():
 if __name__ == '__main__':
     print("\n🔐 Sicherer Log-Server startet...")
     print(f"📝 Logs werden gespeichert in: {LOG_FILE}")
-    load_client_keys('./keys')
+    load_client_keys('../keys')
 
     # In Produktion mit echtem TLS-Zertifikat:
     # app.run(ssl_context=('cert.pem', 'key.pem'), host='0.0.0.0', port=443)
@@ -157,17 +157,18 @@ if __name__ == '__main__':
     import sys
 
     # Schlüssel generieren falls nicht vorhanden
-    if not os.path.exists('client_private_key.pem'):
+    private_key_path = '../keys/client_private_key.pem'
+    if not os.path.exists(private_key_path):
         print("Generiere Schlüsselpaar...")
         from generate_keys import generate_keypair
 
-        generate_keypair("client")
-        print("\n⚠️  Kopiere 'client_public_key.pem' in das Server 'keys/' Verzeichnis!\n")
+        generate_keypair("client", keys_dir="../keys")
+        print("\n⚠️  Alle Schlüssel wurden im 'keys/' Verzeichnis erstellt!\n")
 
     # Client initialisieren
     client = SecureLogClient(
         server_url='http://localhost:5000',  # In Produktion: https://
-        private_key_path='client_private_key.pem'
+        private_key_path=private_key_path
     )
 
     print(f"\n📤 Sende Test-Logs als Client {client.client_id}...\n")

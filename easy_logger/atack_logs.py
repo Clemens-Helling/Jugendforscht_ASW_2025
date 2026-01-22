@@ -8,10 +8,10 @@ from cryptography.hazmat.primitives.asymmetric import padding
 SERVER_URL = 'http://localhost:5000'
 
 # Lade private und public keys für Tests
-with open('client_private_key.pem', 'rb') as f:
+with open('../keys/client_private_key.pem', 'rb') as f:
     private_key = serialization.load_pem_private_key(f.read(), password=None)
 
-with open('./keys/client_public_key.pem', 'rb') as f:
+with open('../keys/client_public_key.pem', 'rb') as f:
     public_key = serialization.load_pem_public_key(f.read())
 
 # Client-ID berechnen
