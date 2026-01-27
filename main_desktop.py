@@ -10,9 +10,16 @@ from pyprinter import Printer
 from ttkbootstrap import DateEntry
 from ttkbootstrap.constants import *
 
+from Data.setup_database import db_connection_error
 from Alert import alarm
+
+if db_connection_error:
+    import sys
+    print(f"FEHLER: Keine Datenbankverbindung: {db_connection_error}", file=sys.stderr)
+    # Die tkinter MessageBox wird in der App-Klasse angezeigt
+
 from Data import (alerts_crud, materials_crud, patient_crud, protokoll_crud,
-                  users_crud, settings_crud)
+              users_crud, settings_crud)
 from Data.materials_crud import get_material_id_by_name, get_materials_by_protokoll_id, add_material_quantity
 from Data.protokoll_crud import convert_alert_to_protokoll_id
 from PDF.pdf import main
@@ -45,6 +52,20 @@ class App(tb.Window):
         super().__init__(themename="litera")
         self.title("SaniLink")
         self.geometry("1200x800")
+        
+        # Datenbankverbindung prüfen
+        if db_connection_error:
+            messagebox.showerror(
+                "Datenbankfehler",
+                f"Keine Verbindung zur Datenbank möglich:\n\n{db_connection_error}\n\n"
+                "Bitte überprüfen Sie:\n"
+                "- MySQL Server läuft\n"
+                "- Zugangsdaten korrekt\n"
+                "- Netzwerkverbindung"
+            )
+            self.destroy()
+            return
+        
         selected_alert = None
         self.selected_open_alert = None
 

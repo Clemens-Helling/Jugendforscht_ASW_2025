@@ -154,7 +154,8 @@ def get_all_material_names():
     return [f"{m.material_name}" for m in materials]
 
 
-print(get_materials_by_protokoll(protokoll_id=23))
+# Debug code - only run when executed directly
+# print(get_materials_by_protokoll(protokoll_id=23))
 
 
 def set_minimum_stock(material_id, minimum_stock):

@@ -14,14 +14,20 @@ logger = SecureLogClient(
     private_key_path = "keys/client_private_key.pem"
 )
 
-engine = create_engine("mysql+pymysql://root:clemens1712@localhost:3306/sani_link")
+engine = None
+Session = None
+session = None
+db_connection_error = None
+
 try:
+    engine = create_engine("mysql+pymysql://sani:clemens1712@192.168.178.112:3606/sani_link")
     Session = sessionmaker(bind=engine)
     session = Session()
     Base.metadata.create_all(engine)
     logger.send_log("INFO","Datenbank verbindung hergestellt")
 except Exception as e:
-    logger.send_log("INFO","Datenbank verbindung hergestellt")
+    db_connection_error = str(e)
+    logger.send_log("ERROR", f"Datenbank verbindung fehlgeschlagen: {e}")
 
 
 

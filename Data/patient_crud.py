@@ -122,4 +122,5 @@ def get_pseudonym_by_name(real_name, real_last_name, birth_day):
         return None
 
 
-print(get_pseudonym_by_name("Clemens", "Helling", "17.12.2010"))
+# Debug code - only run when executed directly
+# print(get_pseudonym_by_name("Clemens", "Helling", "17.12.2010"))
