@@ -1,8 +1,10 @@
 import datetime
 import uuid
+import os
 
 from sqlalchemy import create_engine, desc
 from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
 
 from Data.crypto import decrypt, encrypt
 from Data.models import (Alarmierung, Base, Material, Patient, Protokoll,
@@ -14,13 +16,27 @@ logger = SecureLogClient(
     private_key_path = "keys/client_private_key.pem"
 )
 
+# Lade Umgebungsvariablen
+load_dotenv('sanilink.env')
+
 engine = None
 Session = None
 session = None
 db_connection_error = None
 
+def get_db_connection_string():
+    """Erstellt die Datenbankverbindungs-URL aus Umgebungsvariablen"""
+    user = os.getenv('DB_USER', 'sani')
+    password = os.getenv('DB_PASSWORD', 'clemens1712')
+    host = os.getenv('DB_HOST', '192.168.178.112')
+    port = os.getenv('DB_PORT', '3606')
+    database = os.getenv('DB_NAME', 'sani_link')
+    
+    return f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
+
 try:
-    engine = create_engine("mysql+pymysql://sani:clemens1712@192.168.178.112:3606/sani_link")
+    connection_string = get_db_connection_string()
+    engine = create_engine(connection_string)
     Session = sessionmaker(bind=engine)
     session = Session()
     Base.metadata.create_all(engine)

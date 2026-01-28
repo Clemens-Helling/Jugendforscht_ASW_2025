@@ -47,30 +47,267 @@ class PlaceholderEntry(tb.Entry):
             self["foreground"] = "grey"
 
 
+class DatabaseErrorPage(tb.Frame):
+    def __init__(self, parent, controller, error_message):
+        super().__init__(parent)
+        self.controller = controller
+        self.error_message = error_message
+        
+        # Scrollbarer Container
+        canvas = tb.Canvas(self)
+        scrollbar = tb.Scrollbar(self, orient="vertical", command=canvas.yview)
+        error_container = tb.Frame(canvas)
+        
+        error_container.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=error_container, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.pack(side=LEFT, fill=BOTH, expand=True)
+        scrollbar.pack(side=RIGHT, fill=Y)
+        
+        # Zentrierter Inhalt
+        content = tb.Frame(error_container)
+        content.pack(expand=True, pady=50)
+        
+        # Fehler Icon/Text
+        tb.Label(
+            content, 
+            text="⚠️ Datenbankfehler",
+            font=("Exo 2 Black", 24),
+            bootstyle="danger"
+        ).pack(pady=20)
+        
+        # Fehlermeldung
+        error_text = tb.Text(
+            content,
+            height=3,
+            width=70,
+            font=("Exo 2", 10),
+            wrap="word"
+        )
+        error_text.insert("1.0", str(error_message))
+        error_text.config(state="disabled")
+        error_text.pack(pady=10)
+        
+        # Separator
+        tb.Separator(content, orient="horizontal").pack(fill=X, pady=20)
+        
+        # DB-Einstellungen
+        tb.Label(
+            content,
+            text="Datenbank-Verbindungseinstellungen",
+            font=("Exo 2 Bold", 14)
+        ).pack(pady=10)
+        
+        # Formular Frame
+        form_frame = tb.Frame(content)
+        form_frame.pack(pady=10)
+        
+        # Lade aktuelle Werte aus .env
+        import os
+        from dotenv import load_dotenv
+        load_dotenv('sanilink.env')
+        
+        # DB Host
+        tb.Label(form_frame, text="Host:", font=("Exo 2", 11)).grid(row=0, column=0, sticky=W, padx=5, pady=5)
+        self.host_entry = tb.Entry(form_frame, width=30)
+        self.host_entry.insert(0, os.getenv('DB_HOST', '192.168.178.112'))
+        self.host_entry.grid(row=0, column=1, padx=5, pady=5)
+        
+        # DB Port
+        tb.Label(form_frame, text="Port:", font=("Exo 2", 11)).grid(row=1, column=0, sticky=W, padx=5, pady=5)
+        self.port_entry = tb.Entry(form_frame, width=30)
+        self.port_entry.insert(0, os.getenv('DB_PORT', '3606'))
+        self.port_entry.grid(row=1, column=1, padx=5, pady=5)
+        
+        # DB User
+        tb.Label(form_frame, text="Benutzer:", font=("Exo 2", 11)).grid(row=2, column=0, sticky=W, padx=5, pady=5)
+        self.user_entry = tb.Entry(form_frame, width=30)
+        self.user_entry.insert(0, os.getenv('DB_USER', 'sani'))
+        self.user_entry.grid(row=2, column=1, padx=5, pady=5)
+        
+        # DB Password
+        tb.Label(form_frame, text="Passwort:", font=("Exo 2", 11)).grid(row=3, column=0, sticky=W, padx=5, pady=5)
+        self.password_entry = tb.Entry(form_frame, width=30, show="*")
+        self.password_entry.insert(0, os.getenv('DB_PASSWORD', ''))
+        self.password_entry.grid(row=3, column=1, padx=5, pady=5)
+        
+        # DB Name
+        tb.Label(form_frame, text="Datenbank:", font=("Exo 2", 11)).grid(row=4, column=0, sticky=W, padx=5, pady=5)
+        self.db_name_entry = tb.Entry(form_frame, width=30)
+        self.db_name_entry.insert(0, os.getenv('DB_NAME', 'sani_link'))
+        self.db_name_entry.grid(row=4, column=1, padx=5, pady=5)
+        
+        # Button Container
+        btn_container = tb.Frame(content)
+        btn_container.pack(pady=20)
+        
+        # Save & Retry Button
+        tb.Button(
+            btn_container,
+            text="Speichern & Verbinden",
+            bootstyle="success",
+            command=self.save_and_retry
+        ).pack(side=LEFT, padx=5)
+        
+        # Test Button
+        tb.Button(
+            btn_container,
+            text="Verbindung testen",
+            bootstyle="info",
+            command=self.test_connection
+        ).pack(side=LEFT, padx=5)
+        
+        # Retry Button
+        tb.Button(
+            btn_container,
+            text="Erneut versuchen",
+            bootstyle="primary",
+            command=self.retry_connection
+        ).pack(side=LEFT, padx=5)
+        
+        tb.Button(
+            btn_container,
+            text="Beenden",
+            bootstyle="danger",
+            command=controller.destroy
+        ).pack(side=LEFT, padx=5)
+    
+    def test_connection(self):
+        """Testet die Datenbankverbindung mit den eingegebenen Werten"""
+        from sqlalchemy import create_engine, text
+        
+        host = self.host_entry.get().strip()
+        port = self.port_entry.get().strip()
+        user = self.user_entry.get().strip()
+        password = self.password_entry.get().strip()
+        database = self.db_name_entry.get().strip()
+        
+        # Validierung
+        if not all([host, port, user, database]):
+            messagebox.showwarning(
+                "Unvollständige Eingabe",
+                "Bitte füllen Sie alle Felder aus (außer Passwort ist optional)."
+            )
+            return
+        
+        try:
+            # Verbindungstest
+            connection_string = f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
+            test_engine = create_engine(connection_string)
+            
+            # Versuche zu verbinden
+            with test_engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
+            
+            messagebox.showinfo(
+                "✓ Verbindung erfolgreich",
+                f"Die Verbindung zur Datenbank '{database}' auf {host}:{port} war erfolgreich!\n\n"
+                "Sie können nun 'Speichern & Verbinden' klicken."
+            )
+            
+        except Exception as e:
+            messagebox.showerror(
+                "✗ Verbindung fehlgeschlagen",
+                f"Verbindung zur Datenbank konnte nicht hergestellt werden:\n\n{str(e)}\n\n"
+                "Bitte überprüfen Sie:\n"
+                "• MySQL Server läuft\n"
+                "• Host und Port korrekt\n"
+                "• Benutzername und Passwort korrekt\n"
+                "• Datenbank existiert"
+            )
+    
+    def save_and_retry(self):
+        """Speichert die DB-Zugangsdaten in sanilink.env und versucht neu zu verbinden"""
+        try:
+            # Lese aktuelle .env Datei
+            env_path = 'sanilink.env'
+            with open(env_path, 'r') as f:
+                lines = f.readlines()
+            
+            # Aktualisiere DB-Werte
+            new_lines = []
+            db_keys = {'DB_HOST', 'DB_PORT', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'}
+            found_keys = set()
+            
+            for line in lines:
+                if line.strip().startswith('DB_'):
+                    key = line.split('=')[0].strip()
+                    if key in db_keys:
+                        found_keys.add(key)
+                        if key == 'DB_HOST':
+                            new_lines.append(f"DB_HOST={self.host_entry.get()}\n")
+                        elif key == 'DB_PORT':
+                            new_lines.append(f"DB_PORT={self.port_entry.get()}\n")
+                        elif key == 'DB_USER':
+                            new_lines.append(f"DB_USER={self.user_entry.get()}\n")
+                        elif key == 'DB_PASSWORD':
+                            new_lines.append(f"DB_PASSWORD={self.password_entry.get()}\n")
+                        elif key == 'DB_NAME':
+                            new_lines.append(f"DB_NAME={self.db_name_entry.get()}\n")
+                    else:
+                        new_lines.append(line)
+                else:
+                    new_lines.append(line)
+            
+            # Füge fehlende Werte hinzu
+            if 'DB_HOST' not in found_keys:
+                new_lines.append(f"DB_HOST={self.host_entry.get()}\n")
+            if 'DB_PORT' not in found_keys:
+                new_lines.append(f"DB_PORT={self.port_entry.get()}\n")
+            if 'DB_USER' not in found_keys:
+                new_lines.append(f"DB_USER={self.user_entry.get()}\n")
+            if 'DB_PASSWORD' not in found_keys:
+                new_lines.append(f"DB_PASSWORD={self.password_entry.get()}\n")
+            if 'DB_NAME' not in found_keys:
+                new_lines.append(f"DB_NAME={self.db_name_entry.get()}\n")
+            
+            # Schreibe zurück
+            with open(env_path, 'w') as f:
+                f.writelines(new_lines)
+            
+            messagebox.showinfo(
+                "Gespeichert", 
+                "Zugangsdaten wurden gespeichert.\n\n"
+                "Bitte starten Sie die Anwendung neu, um die Verbindung herzustellen."
+            )
+            
+        except Exception as e:
+            messagebox.showerror("Fehler", f"Konnte Einstellungen nicht speichern:\n{e}")
+    
+    def retry_connection(self):
+        messagebox.showinfo("Info", "Bitte starten Sie die Anwendung neu, um die Verbindung erneut zu versuchen.")
+
+
 class App(tb.Window):
     def __init__(self):
         super().__init__(themename="litera")
         self.title("SaniLink")
         self.geometry("1200x800")
         
+        # Container für alle Seiten (muss vor DB-Check sein)
+        container = tb.Frame(self)
+        container.pack(side=TOP, fill=BOTH, expand=True)
+        container.grid_rowconfigure(0, weight=1)
+        container.grid_columnconfigure(0, weight=1)
+        
         # Datenbankverbindung prüfen
         if db_connection_error:
-            messagebox.showerror(
-                "Datenbankfehler",
-                f"Keine Verbindung zur Datenbank möglich:\n\n{db_connection_error}\n\n"
-                "Bitte überprüfen Sie:\n"
-                "- MySQL Server läuft\n"
-                "- Zugangsdaten korrekt\n"
-                "- Netzwerkverbindung"
-            )
-            self.destroy()
+            # Fehlerseite anzeigen statt App zu zerstören
+            error_page = DatabaseErrorPage(container, self, db_connection_error)
+            error_page.grid(row=0, column=0, sticky="nsew")
+            error_page.tkraise()
             return
         
         selected_alert = None
         self.selected_open_alert = None
 
         navbar = tb.Frame(self, style="dark")
-        navbar.pack(side=TOP, fill=X)
+        navbar.pack(side=TOP, fill=X, before=container)
 
         style = tb.Style("litera")
         style.configure(
@@ -130,14 +367,6 @@ class App(tb.Window):
         tb.Button(navbar, text="Beenden", style="danger", command=self.destroy).pack(
             side=RIGHT, padx=5, pady=5
         )
-
-        # Container für alle Seiten
-        container = tb.Frame(self)
-        container.pack(side=TOP, fill=BOTH, expand=True)
-
-        # Gewichtung für Zeilen und Spalten setzen
-        container.grid_rowconfigure(0, weight=1)
-        container.grid_columnconfigure(0, weight=1)
 
         # Dictionary für Frames (Seiten)
         self.frames = {}
